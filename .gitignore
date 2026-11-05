@@ -1,0 +1,39 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtuelle Umgebungen ---
+.venv/
+venv/
+env/
+
+# --- Tests & Tools ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Secrets (niemals einchecken) ---
+.env
+*.key
+
+# --- Generierte Daten & Berichte (werden reproduzierbar erzeugt) ---
+data/*.db
+data/*.sqlite
+data/generiert/
+output/
+berichte/
+
+# --- Editor / Betriebssystem ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Streamlit: Konfiguration ins Repo, Secrets nie
+.streamlit/secrets.toml

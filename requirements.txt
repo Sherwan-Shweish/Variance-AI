@@ -1,0 +1,28 @@
+# --- Kern (Schritt 1) ---
+pydantic>=2.7,<3
+python-dotenv>=1.0
+
+# --- LLM-Anbieter (optional – ohne Key läuft der Mock-Modus) ---
+anthropic>=0.60
+google-genai>=1.20
+
+# --- Analyse & Forecast (Schritt 2) ---
+pandas>=2.2
+numpy>=1.26
+statsmodels>=0.14.4      # 0.14 und 0.15 getestet (Simulation versionsunabhängig)
+
+# --- Cockpit, Reporting & Export (Schritt 3) ---
+streamlit>=1.50          # Theme-Schriften, segmented_control, Altair width="stretch"
+altair>=5.4             # interaktive IBCS-Diagramme im Cockpit
+pyarrow>=16             # erste Version, die mit NumPy 2 kompatibel ist (Datenübergabe an Streamlit)
+matplotlib>=3.8
+pillow>=10.0
+python-pptx>=1.0
+reportlab>=4.2
+openpyxl>=3.1
+
+# --- Desktop-App (Agenten-Standard v1, nur macOS) ---
+pywebview>=5.3; sys_platform == 'darwin'
+
+# --- Tests ---
+pytest>=8.0
