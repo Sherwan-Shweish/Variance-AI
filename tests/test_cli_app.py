@@ -191,3 +191,20 @@ def test_fehler_in_einem_tab_legt_cockpit_nicht_lahm(monkeypatch):
     assert [e.message for e in at.exception] == ["simulierter Importfehler"]  # nur unter „Technische Details“
     assert any("Abweichungsanalyse" in e.value and "simulierter Importfehler" in e.value for e in at.error)
     assert [t.label for t in at.tabs][-1] == "Agent & Audit" and "Audit-Protokoll" in _html(at)  # spätere Tabs laufen
+
+
+def test_app_demo_modus_weist_keine_ki_texte_aus(app):
+    """Ohne KI-Schlüssel stammen die Texte aus Regeln – die Oberfläche nennt sie nicht „KI-generiert“."""
+    app.button(key="bsp_Warum liegt die Kostenstelle 4200 über Plan?").click().run()
+    next(b for b in app.button if b.label == "Entwürfe erzeugen").click().run()
+    assert not app.exception
+    html = _html(app)
+    assert "Demo-Text ohne KI" in html
+    assert "KI-generiert" not in html
+
+
+def test_app_forecast_kosten_nennt_bereinigten_einmaleffekt(app):
+    app.selectbox(key="fc_kennzahl").set_value("Kosten").run()
+    assert not app.exception
+    assert any("nicht in die Restmonate fortgeschrieben" in c.value for c in app.caption)
+    assert "Prognosegüte früherer Forecasts" in _html(app)

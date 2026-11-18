@@ -7,7 +7,7 @@ Leitprinzip **Determinismus vor KI**:
 * Das LLM erhält ausschließlich ein strukturiertes :class:`Faktenblatt` bzw.
   Ergebnisse fest definierter Analysefunktionen (Tool-Whitelist, kein freies SQL).
 * Jede Zahl im LLM-Text wird gegen das Faktenblatt geprüft
-  (:func:`pruefe_text`, Null-Halluzinations-Prüfung). Schlägt die Prüfung fehl,
+  (:func:`pruefe_text`, Zahlenprüfung). Schlägt die Prüfung fehl,
   wird der Text verworfen und ein regelbasierter Standardkommentar erzeugt.
 * KI-Kommentare sind Entwürfe. Erst nach namentlicher Freigabe durch den
   Controller (:meth:`Kommentar.freigeben`) sind sie berichtsfähig.
@@ -18,7 +18,7 @@ Aufbau dieses Moduls:
 1.  Aufzählungen und Fehlerklassen
 2.  Formatierung nach deutschem Standard
 3.  Pydantic-Schemata (Faktenblatt, Kommentar, Antwort, Tool-Ergebnisse)
-4.  Null-Halluzinations-Prüfung und inhaltliche Konsistenzprüfung
+4.  Zahlenprüfung und inhaltliche Konsistenzprüfung
 5.  Prompt-Injection-Schutz
 6.  Analyse-Backend und Tool-Whitelist
 7.  Regelbasierte Texte (Fallback)
@@ -177,6 +177,16 @@ class Freigabestatus(StrEnum):
 class Textquelle(StrEnum):
     LLM = "KI-generiert"
     REGELBASIERT = "regelbasiert"
+
+
+DEMO_QUELLE = "Demo-Text ohne KI"
+
+
+def quellenangabe(quelle: Textquelle, modell: str) -> str:
+    """Ehrliche Anzeige: Texte des Offline-Clients (``mock-…``) stammen aus Regeln, nicht aus einem Sprachmodell."""
+    if quelle is Textquelle.LLM and modell.startswith("mock"):
+        return DEMO_QUELLE
+    return quelle.value
 
 
 class ForecastMethode(StrEnum):
@@ -663,6 +673,11 @@ class Kommentar(_Basis):
     freigegeben_von: str | None = None
     freigegeben_am: datetime | None = None
 
+    @property
+    def quellenangabe(self) -> str:
+        """Anzeige der Textquelle; im Demo-Modus ohne KI-Schlüssel ausdrücklich nicht „KI-generiert“."""
+        return quellenangabe(self.quelle, self.modell)
+
     @model_validator(mode="after")
     def _freigabe_konsistent(self) -> Kommentar:
         if self.status is Freigabestatus.FREIGEGEBEN:
@@ -737,6 +752,10 @@ class Antwort(_Basis):
     prompt_version: str = PROMPT_VERSION
     erstellt_am: datetime = Field(default_factory=_jetzt)
 
+    @property
+    def quellenangabe(self) -> str:
+        return quellenangabe(self.quelle, self.modell)
+
 
 # --- Ergebnis-Schemata der Tools -------------------------------------------
 
@@ -780,7 +799,7 @@ class TreiberRanking(_Basis):
 
 
 # =============================================================================
-# 4. Null-Halluzinations-Prüfung
+# 4. Zahlenprüfung
 # =============================================================================
 
 
@@ -942,7 +961,7 @@ def pruefe_text(
     kontextzahlen: Sequence[Faktenwert] = (),
     max_laenge: int = 1500,
 ) -> Pruefergebnis:
-    """Null-Halluzinations-Prüfung: jede Zahl im Text muss belegt sein.
+    """Zahlenprüfung: jede Zahl im Text muss belegt sein.
 
     Regeln:
 
@@ -1413,7 +1432,7 @@ def regelbasierter_kommentar(abw: Abweichung) -> str:
     """Deterministischer Standardkommentar (Ursache → Wirkung → Maßnahme).
 
     Verwendet ausschließlich formatierte Werte aus dem Faktenblatt und besteht
-    daher per Konstruktion die Null-Halluzinations-Prüfung.
+    daher per Konstruktion die Zahlenprüfung.
     """
     teile = [_kopfzeile(abw)]
     sortiert = sorted(abw.treiber, key=lambda t: -abs(t.betrag))
@@ -1955,7 +1974,7 @@ def erstelle_llm_client(anbieter: str | None = None, *, streng: bool = False, **
 class ControllerAgent:
     """KI-Controller-Agent: Kommentierung und Beantwortung von Fragen.
 
-    Ablauf je Text: LLM-Entwurf → Null-Halluzinations-Prüfung → bei Fehlschlag
+    Ablauf je Text: LLM-Entwurf → Zahlenprüfung → bei Fehlschlag
     regelbasierter Standardkommentar. Alle Kommentare starten als ``ENTWURF``.
     """
 
@@ -2186,7 +2205,7 @@ if __name__ == "__main__":  # Kurzdemo im Offline-Modus: python -m src.agent
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     agent = ControllerAgent(demo_faktenblatt(), MockLLMClient())
     for kommentar in agent.kommentiere_wesentliche():
-        print(f"[{kommentar.status.value} | {kommentar.quelle.value}] {kommentar.text}")
+        print(f"[{kommentar.status.value} | {kommentar.quellenangabe}] {kommentar.text}")
     for frage in ("Warum ist der Deckungsbeitrag im März gesunken?", "Wo landen wir beim Umsatz am Jahresende?"):
         antwort = agent.beantworte(frage)
-        print(f"\nFrage: {frage}\n[{antwort.quelle.value}] {antwort.text}")
+        print(f"\nFrage: {frage}\n[{antwort.quellenangabe}] {antwort.text}")

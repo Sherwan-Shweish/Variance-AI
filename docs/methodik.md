@@ -98,10 +98,10 @@ Verbrauchsabweichung nicht verfälschen.
 | Zeile | Rechnung |
 |---|---|
 | Umsatz | Erlöse (Haben, mit umgekehrtem Vorzeichen) |
-| Herstellkosten (Standard) | Absatzmenge × Standardherstellkosten je Material |
-| **Deckungsbeitrag** | Umsatz − Herstellkosten |
-| Kosten Kostenstellen | Summe der Kostenstellenkosten (Gemeinkosten) |
-| **EBIT** | Deckungsbeitrag − Kosten Kostenstellen |
+| Herstellkosten (Standard) | Absatzmenge × variable Standardherstellkosten je Material (Material, Zukaufteile) |
+| **Deckungsbeitrag** | Umsatz − variable Standardherstellkosten |
+| Kosten Kostenstellen | Summe der Kostenstellenkosten (beschäftigungsvariabel und fix) |
+| **EBIT (vereinfacht)** | Deckungsbeitrag − Kosten Kostenstellen; ohne Vertriebs- und Verwaltungskosten |
 
 Die EBIT-Abweichung zum Plan wird ohne Restgröße in Treiber zerlegt:
 
@@ -131,6 +131,9 @@ stimmt auch *Summe Drill-down = Gesamtebene* auf den Cent.
 ## 6. Forecast
 
 * **Jahresendprognose** = Ist YTD + Prognose der Restmonate.
+* **Einmaleffekte:** Als einmalig gekennzeichnete Kostenarten (Sonderabschreibung 240,0 T€) bleiben im Ist YTD,
+  werden aber aus der Prognosebasis herausgenommen und nicht fortgeschrieben. Ohne diese Bereinigung würde das
+  Modell den Sprung als neues Kostenniveau deuten und die Restmonate um rund 0,56 Mio. € zu hoch ansetzen.
 * **Methoden:** saisonal-naiv und Holt-Winters (ETS mit gedämpftem Trend).
 * **Auswahl** je Zeitreihe per Rolling-Origin-Backtest (Mindesthistorie 24
   Monate, Horizont 3 Monate) nach WAPE; bei Gleichstand gewinnt saisonal-naiv.
@@ -144,10 +147,11 @@ stimmt auch *Summe Drill-down = Gesamtebene* auf den Cent.
 |---|---|---|---|---|---|
 | Umsatz | 4,8 % | 2,3 % | 88,1 Mio. € | 88,5 Mio. € | −0,5 % |
 | Deckungsbeitrag | 5,4 % | 1,9 % | 49,2 Mio. € | 49,0 Mio. € | +0,3 % |
-| Kosten Kostenstellen | 8,0 % | 2,3 % | 41,6 Mio. € | 40,1 Mio. € | +3,7 % |
+| Kosten Kostenstellen | 7,4 % | 1,8 % | 41,0 Mio. € | 40,1 Mio. € | +2,3 % |
 
 Forecast-Güte Umsatz: FC03 WAPE 4,5 % (Bias −4,5 % – das Neuprodukt ab April war
-noch nicht bekannt), FC06 WAPE 1,1 %.
+noch nicht bekannt), FC06 WAPE 1,1 %. Die niedrigen Fehlerwerte folgen aus dem geringen Rauschen der
+synthetischen Daten und sind keine Aussage über echte Unternehmensdaten.
 
 ---
 
@@ -181,7 +185,7 @@ diese Zerlegung macht die Analyse auf Gesamtebene erst aussagekräftig.
 2. **Bereinigung:** Auffällige Datentexte werden vor dem LLM-Aufruf ersetzt –
    im Faktenblatt und in jedem Tool-Ergebnis.
 3. **Tool-Whitelist:** fünf feste, streng typisierte Analysefunktionen; kein SQL.
-4. **Null-Halluzinations-Prüfung:** jede Zahl mit Einheit, Vorzeichen und Rundung belegt.
+4. **Zahlenprüfung:** jede Zahl mit Einheit, Vorzeichen und Rundung belegt.
 5. **Konsistenzprüfung für Kommentare:** Pflichtangabe der Abweichung, keine
    Entwarnung bei wesentlichen Abweichungen, Bewertung passend zur Vorzeichenlogik.
    Damit wird auch ein manipulierter Text ohne Zahlen („Alle Kostenstellen liegen

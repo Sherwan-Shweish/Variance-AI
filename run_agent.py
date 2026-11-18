@@ -130,7 +130,7 @@ def befehl_kommentare(args: argparse.Namespace) -> int:
         if args.freigeben and k.status is Freigabestatus.ENTWURF:
             k = k.freigeben(args.freigeben)
         vorhanden[objekt] = k
-        print(f"[{k.status.value} | {k.quelle.value}] {objekt}: {k.text}")
+        print(f"[{k.status.value} | {k.quellenangabe}] {objekt}: {k.text}")
     speichere_kommentare(list(vorhanden.values()), datei)
     print(f"\n{len(vorhanden)} Kommentare gespeichert in {datei}.")
     return 0
@@ -139,7 +139,7 @@ def befehl_kommentare(args: argparse.Namespace) -> int:
 def befehl_frage(args: argparse.Namespace) -> int:
     antwort = _abschluss(args).agent(erstelle_llm_client(args.anbieter)).beantworte(args.frage)
     print(antwort.text)
-    print(f"\nQuelle: {antwort.quelle.value} · Faktenprüfung "
+    print(f"\nQuelle: {antwort.quellenangabe} · Faktenprüfung "
           f"{'bestanden' if antwort.pruefung.bestanden else 'nicht bestanden'} · {antwort.modell}")
     print("Tools:", ", ".join(f"{t.name}({', '.join(f'{k}={v}' for k, v in t.argumente.items())})"
                               + ("" if t.erlaubt else " [abgelehnt]") for t in antwort.tool_aufrufe) or "–")

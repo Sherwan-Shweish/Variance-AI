@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
           "zwei bleiben Entwurf\n   und erscheinen daher nicht im Bericht.")
     kommentare = [k.freigeben("Demo-Controller") if i < 6 else k for i, k in enumerate(kommentare)]
     for k in kommentare:
-        print(f"   [{k.status.value} | {k.quelle.value}] {k.text[:110]}…")
+        print(f"   [{k.status.value} | {k.quellenangabe}] {k.text[:110]}…")
     speichere_kommentare(kommentare, ziel / "kommentare.json")
 
     schritt(5, "Frag den Controller (Tool-Calling über die Whitelist)")

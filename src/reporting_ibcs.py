@@ -584,7 +584,7 @@ def erstelle_pptx(abschluss: Abschlussergebnis, kommentare: Sequence[Kommentar],
         for k in freigegeben[:5]:
             text(folie, f.rand, y, 12.2, 0.95, [
                 k.text,
-                f"{k.objekt_id} · {k.quelle.value} · freigegeben von {k.freigegeben_von} am "
+                f"{k.objekt_id} · {k.quellenangabe} · freigegeben von {k.freigegeben_von} am "
                 f"{k.freigegeben_am:%d.%m.%Y %H:%M}",  # type: ignore[union-attr]
             ], 13, name=f"Kommentar {k.objekt_id}")
             y += 1.0
@@ -699,7 +699,7 @@ def erstelle_pdf(abschluss: Abschlussergebnis, kommentare: Sequence[Kommentar], 
     if freigegeben:
         for k in freigegeben:
             inhalt += [Paragraph(k.text, stil),
-                       Paragraph(f"{k.objekt_id} · {k.quelle.value} · freigegeben von {k.freigegeben_von} am "
+                       Paragraph(f"{k.objekt_id} · {k.quellenangabe} · freigegeben von {k.freigegeben_von} am "
                                  f"{k.freigegeben_am:%d.%m.%Y %H:%M}", stil_leise), Spacer(1, 6)]  # type: ignore[union-attr]
     else:
         inhalt.append(Paragraph("Für diese Periode wurden noch keine Kommentare freigegeben.", stil))

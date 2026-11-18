@@ -8,7 +8,7 @@ name = "VarianceAI"                      # Fenstertitel, App-Name, Ordnernamen
 untertitel = "Controlling-Cockpit"
 logo = "Δ"                               # Glyphe der Ladeseite (wie im Kopf der App)
 bundle_id = "de.shweish.varianceai"      # eindeutig je Agent (umgekehrte Domain)
-version = "1.3.0"
+version = "1.3.1"
 einstieg = "app.py"                      # Streamlit-Skript relativ zum Projektordner
 
 [fenster]

@@ -137,7 +137,7 @@ if __name__ == "__main__":  # python -m src.pipeline
     print("\n## Kommentar-Entwürfe (Offline-Modus)")
     for objekt in ("UMS-SUED-ANT", "UMS-WEST-STE", "KST-4100", "KST-4200", "KST-4300", "KST-4400"):
         k = agent.kommentiere(objekt)
-        print(f"[{k.status.value} | {k.quelle.value}] {k.text}")
+        print(f"[{k.status.value} | {k.quellenangabe}] {k.text}")
     for frage in ("Warum liegt die Kostenstelle 4200 über Plan?", "Wo landen wir beim Umsatz am Jahresende?"):
         a = agent.beantworte(frage)
-        print(f"\nFrage: {frage}\n[{a.quelle.value}] {a.text}")
+        print(f"\nFrage: {frage}\n[{a.quellenangabe}] {a.text}")

@@ -1,6 +1,6 @@
 # VarianceAI
 
-**Plan-Ist-Analyse, Forecast und IBCS-Monatsbericht für das operative Controlling**
+**Plan-Ist-Analyse, Forecast und Monatsbericht in IBCS-Notation für das operative Controlling**
 
 **Live-Demo:** <https://variance-ai-shweish.streamlit.app> · **Stack:** Python, SQL (SQLite), Streamlit, Excel- und Power-BI-Export
 
@@ -14,7 +14,7 @@
 
 **Kurzfassung:** VarianceAI bildet den monatlichen Controlling-Zyklus eines fiktiven Industrieunternehmens ab:
 Plan-Ist-Vergleich, Zerlegung der Abweichungen in Preis-, Mengen- und Mixeffekte, rollierender Forecast und
-Monatsbericht nach IBCS.
+Monatsbericht in IBCS-Notation.
 
 Alle Zahlen berechnet Python; die KI formuliert nur Kommentare, deren Zahlen automatisch geprüft werden.
 Portfolio-Projekt mit synthetischen Daten.
@@ -86,9 +86,9 @@ Prompt-Injection-Test per Knopfdruck und Audit-Protokoll (Export als JSON):
 | Datenprüfung | Fehlende Perioden, Dubletten oder nicht abgestimmte Summen fallen erst im Bericht auf | Ampelprüfung vor jeder Analyse: Vollständigkeit, Summenabstimmung, Dubletten, Vorzeichen, Periodenzuordnung |
 | Abweichungsanalyse | Manuelle Excel-Brücken, Ursachen bleiben auf KPI-Ebene | Exakt additive Zerlegung (Preis/Menge/Mix/Sortiment, Preis-/Verbrauchs-/Beschäftigungsabweichung) mit Drill-down bis Kunde bzw. Kostenart |
 | Priorisierung | Alles wird kommentiert, Wesentliches geht unter | Konfigurierbare Wesentlichkeitsschwellen, Ranking der Top-Treiber, Kennzeichnung von Einmaleffekten |
-| Forecast | Jahresendprognose als Bauchgefühl | Ist YTD + statistische Prognose der Restmonate, Methodenwahl per Backtesting (WAPE), Szenarien Best/Base/Worst |
+| Forecast | Jahresendprognose als Bauchgefühl | Ist YTD + statistische Prognose der Restmonate, Methodenwahl per Backtesting (WAPE), Einmaleffekte nicht fortgeschrieben, Szenarien Best/Base/Worst |
 | Kommentierung | Hoher Zeitaufwand, uneinheitlicher Stil | KI-Entwürfe im Controlling-Stil (Ursache → Wirkung → Maßnahme), zahlengeprüft und erst nach Freigabe berichtsfähig |
-| Berichtserstellung | Copy-Paste in PowerPoint | Monatsbericht nach IBCS als PowerPoint/PDF, Excel mit Formel-Gegenprüfung, Power-BI-Paket |
+| Berichtserstellung | Copy-Paste in PowerPoint | Monatsbericht in IBCS-Notation als PowerPoint/PDF, Excel mit Formel-Gegenprüfung, Power-BI-Paket |
 
 **Ergebnis:** weniger Routinearbeit im Abschluss, mehr Zeit für die eigentliche Ursachenklärung mit den
 Fachbereichen – bei voller Nachvollziehbarkeit jeder Zahl.
@@ -106,7 +106,7 @@ Fachbereichen – bei voller Nachvollziehbarkeit jeder Zahl.
 | **Forecast** | Rollierende Jahresendprognose (saisonal-naiv, Holt-Winters), Methodenwahl per Backtesting nach WAPE, Szenarien Best/Base/Worst |
 | **KI-Kommentare** | Entwürfe im Controlling-Stil, jede Zahl automatisch geprüft, namentliche Freigabe vor dem Bericht |
 | **Frag den Controller** | Fragen in deutscher Sprache, Antwort mit Tool-Kette und belegten Quellzahlen |
-| **Reporting und Export** | Monatsbericht nach IBCS als PowerPoint und PDF, Excel mit Formel-Gegenprüfung, Power-BI-Paket (Sternschema, DAX) |
+| **Reporting und Export** | Monatsbericht in IBCS-Notation als PowerPoint und PDF, Excel mit Formel-Gegenprüfung, Power-BI-Paket (Sternschema, DAX) |
 | **Betrieb** | Browser, Mac-App im eigenen Fenster, vollständiger Offline-Modus ohne API-Key, Audit-Protokoll |
 
 Mögliche Erweiterungen: Anbindung an echte SAP-Extrakte (CSV/OData), Kommentarhistorie über mehrere Monate,
@@ -164,7 +164,9 @@ Ungeplante Einmalkosten (z. B. Sonderabschreibung) werden vollständig als **Ein
 
 ### Vereinfachte Ergebnisrechnung und EBIT-Brücke
 
-Umsatz − Herstellkosten zu Standard = **Deckungsbeitrag**; Deckungsbeitrag − Kosten der Kostenstellen = **EBIT**.
+Umsatz − variable Standardherstellkosten (Material, Zukaufteile) = **Deckungsbeitrag**; Deckungsbeitrag − Kosten der
+Kostenstellen = **EBIT (vereinfacht)**. Vertriebs- und Verwaltungskosten bildet das Modell nicht ab; das EBIT ist das
+Ergebnis der dargestellten Bereiche, keine vollständige Gewinn- und Verlustrechnung.
 Die EBIT-Abweichung wird ohne Restgröße in Treiber zerlegt:
 
 ```math
@@ -176,6 +178,11 @@ Die EBIT-Abweichung wird ohne Restgröße in Treiber zerlegt:
 Die Plankostenanpassung (verrechnete Plankosten − Plankosten) überführt die Kostenstellenrechnung auf
 Basis der Istbeschäftigung in den Plan. September 2026: ΔDB +55,1 T€ − Kostenstellenabweichungen
 503,6 T€ + Plankostenanpassung 213,5 T€ = **ΔEBIT −235,1 T€ (−29,2 %)**, centgenau durch einen Test abgesichert.
+
+**Lesehilfe:** Die Beschäftigungsabweichung zeigt nicht gedeckte Fixkosten (Leerkosten) der Vollkostenrechnung – die
+Fixkosten selbst ändern sich mit der Auslastung nicht. Beschäftigungsabweichung und Plankostenanpassung zusammen
+ergeben die Kostenänderung, die allein aus der abweichenden Beschäftigung folgt: variable Plankosten ×
+(Beschäftigungsgrad − 1), im September 2026 −144,3 T€ (günstig).
 
 ### Bewertung, Wesentlichkeit und Drill-down
 
@@ -198,10 +205,18 @@ Basis der Istbeschäftigung in den Plan. September 2026: ΔDB +55,1 T€ − Kos
 \text{WAPE} = \frac{\sum_t |\text{Ist}_t - \text{Forecast}_t|}{\sum_t |\text{Ist}_t|}
 ```
 
-- Prognoseintervalle sowie Szenarien **Best / Base / Worst** mit transparenten, deterministischen Annahmen.
+- **Einmaleffekte** (als einmalig gekennzeichnete Kostenarten, z. B. die Sonderabschreibung von 240,0 T€) bleiben im
+  Ist YTD, werden aber aus der Prognosebasis herausgenommen und nicht in die Restmonate fortgeschrieben.
+- Prognoseintervalle sowie Szenarien **Best / Base / Worst** mit transparenten, deterministischen Annahmen. Die
+  Szenarien sind gesetzte Annahmen (+3 % / −5 % auf die Restmonate), keine statistischen Wahrscheinlichkeiten.
+- Die Prognosefehler (WAPE um 2 %) stammen aus synthetischen Daten mit geringem Rauschen; sie zeigen die Methode,
+  nicht die erreichbare Güte bei echten Unternehmensdaten.
 - Messung der Forecast-Güte über die Zeit (Forecast vs. später eingetretenes Ist).
 
-### Reporting nach IBCS
+### Reporting in IBCS-Notation
+
+Die Diagramme folgen den Notationsregeln der International Business Communication Standards (IBCS); das Projekt ist
+nicht IBCS-zertifiziert.
 
 Ist (AC) dunkel gefüllt · Vorjahr (PY) grau · Plan (PL) umrandet · Forecast (FC) schraffiert ·
 Abweichungsbalken günstig grün / ungünstig rot, immer mit Vorzeichen beschriftet · Wasserfall-Brücke Plan → Ist.
@@ -237,7 +252,7 @@ Zahlenformat nach deutschem Standard: `1.234,5 T€`, `1,2 Mio. €`, `−4,2 %`
 |---|---|
 | **Alle Zahlen kommen aus Python** | Beträge in Cent, Effekte exakt mit `Fraction`, Rundung erst bei der Ausgabe (Largest-Remainder, Summe bleibt centgenau), abgesichert durch mathematische Invarianten in pytest |
 | **Das LLM sieht nur ein Faktenblatt** | Strukturiertes JSON (Pydantic-validiert) bzw. Ergebnisse fest definierter Analysefunktionen |
-| **Null-Halluzinations-Prüfung** | Jede Zahl im KI-Text wird mit Wert, Einheit, Vorzeichen und Rundung gegen das Faktenblatt abgeglichen; zusätzlich prüft eine Konsistenzprüfung Pflichtangaben und Bewertung. Fehlschlag → Text wird verworfen, regelbasierter Standardkommentar wird erzeugt |
+| **Zahlenprüfung** | Jede Zahl im KI-Text wird mit Wert, Einheit, Vorzeichen und Rundung gegen das Faktenblatt abgeglichen; zusätzlich prüft eine Konsistenzprüfung Pflichtangaben und Bewertung. Fehlschlag → Text wird verworfen, regelbasierter Standardkommentar wird erzeugt |
 | **Human-in-the-Loop** | KI-Kommentare sind `Entwurf`. Erst die namentliche Freigabe durch den Controller macht sie berichtsfähig – manuelle Änderungen werden erneut geprüft |
 | **Offline-Modus** | Ohne API-Key läuft das gesamte Projekt mit einem deterministischen Mock-Client vollständig durch |
 
@@ -303,9 +318,10 @@ und protokolliert.
 | `top_treiber` | Ranking der größten Treiber (1–10) |
 | `forecast_holen` | Jahresendprognose inkl. Methode, WAPE, Intervall, Szenarien |
 
-### Null-Halluzinations-Prüfung
+### Zahlenprüfung
 
-Jede Zahl im KI-Text wird erkannt – auch in deutschen Formaten wie `1,2 Mio. €`, `1.234,5 T€`,
+Die Prüfung belegt Zahlen, nicht Ursachen: Ob eine genannte Ursache fachlich zutrifft, entscheidet der Controller bei
+der Freigabe. Jede Zahl im KI-Text wird erkannt – auch in deutschen Formaten wie `1,2 Mio. €`, `1.234,5 T€`,
 `−4,2 %`, `+3,1 PP` – und muss im Faktenblatt belegt sein:
 
 - gleiche **Einheit** (€, %, PP, Stück), passendes **Vorzeichen**,
@@ -328,20 +344,23 @@ Das Faktenblatt im Prompt ist bewusst kompakt (Übersichtsebenen, Kostenarten, w
 Die Tools greifen über das `EngineBackend` auf den **vollständigen Analysebaum** zu – Drill-down bis
 Kunde bzw. Kostenart. Auch Zahlen aus Tool-Ergebnissen durchlaufen die Faktenprüfung.
 
-### Beispiel (Offline-Modus, Monatsabschluss September 2026)
+### Beispiel (Demo-Modus ohne KI-Schlüssel, Monatsabschluss September 2026)
+
+Im Demo-Modus erzeugt ein deterministischer Offline-Client die Texte aus Regeln; sie durchlaufen dieselbe Prüfung
+wie ein KI-Text und sind als *Demo-Text ohne KI* gekennzeichnet.
 
 ```text
-[Entwurf | KI-generiert] Umsatz Süd – Antriebe: −22,2 % (−288,7 T€) ggü. Plan, ungünstig; überwiegend
+[Entwurf | Demo-Text ohne KI] Umsatz Süd – Antriebe: −22,2 % (−288,7 T€) ggü. Plan, ungünstig; überwiegend
 Mengeneffekt (−289,4 T€), größter Beitrag aus Umsatz Süd – Getriebemotor GM 200 (−102,9 T€).
 Maßnahme: Absatzentwicklung und Auftragseingang mit dem Vertrieb analysieren.
 
-[Entwurf | KI-generiert] Kostenstelle 4300 Lackiererei: +15,9 % (+60,2 T€) ggü. Plan, ungünstig;
+[Entwurf | Demo-Text ohne KI] Kostenstelle 4300 Lackiererei: +15,9 % (+60,2 T€) ggü. verrechneten Plankosten, ungünstig;
 überwiegend Beschäftigungsabweichung (+61,1 T€), größter Beitrag aus Kostenstelle 4300 – Planmäßige
 Abschreibungen (+41,4 T€). Maßnahme: Kapazitätsauslastung prüfen und Anpassung der Fixkosten erwägen.
 
 Frage: Warum liegt die Kostenstelle 4200 über Plan?
 Tools: abweichungen_auflisten → abweichung_holen(KST-4200) → drilldown(KST-4200)
-[KI-generiert] Kostenstelle 4200 Montage: +9,0 % (+91,0 T€) ggü. Plan, ungünstig; überwiegend
+[Demo-Text ohne KI] Kostenstelle 4200 Montage: +9,0 % (+91,0 T€) ggü. verrechneten Plankosten, ungünstig; überwiegend
 Verbrauchsabweichung (+89,0 T€), größter Beitrag aus Kostenstelle 4200 – Materialaufwand (+88,2 T€). …
 ```
 
@@ -360,13 +379,13 @@ Die Regeln sind im Code dokumentiert (`src/ui_design.py`, `src/ui_diagramme.py`,
 | Regel | Umsetzung | Begründung |
 |---|---|---|
 | **Eine Farbe – eine Aufgabe** | Datenfarben nach IBCS (AC hell gefüllt, PY grau, PL umrandet, FC gestrichelt); Akzent Kupfer nur für Interaktion und KI-Elemente | Wer Farbe liest, soll nie raten müssen, ob sie Daten oder Bedienung meint |
-| **Günstig/ungünstig barrierearm** | `#3AAB86` / `#C8382F`, auf der dunklen Fläche validiert (Kontrast ≥ 3:1, Farbsehschwäche ΔE 12,6) und immer mit Vorzeichen beschriftet | Rot-Grün allein ist für ca. 8 % der Männer nicht unterscheidbar |
+| **Günstig/ungünstig barrierearm** | `#3AAB86` / `#C8382F`, auf der dunklen Fläche validiert (Kontrast ≥ 3:1; auch bei simulierter Rot-Grün-Sehschwäche unterscheidbar) und immer mit Vorzeichen beschriftet | Rot-Grün allein ist für ca. 8 % der Männer nicht unterscheidbar |
 | **Ehrliche Achsen** | Säulen immer ab 0; ist eine Abweichung klein gegenüber der Basis, zeigt die Brücke automatisch nur die Abweichung | Abgeschnittene Achsen übertreiben Unterschiede |
 | **Richtige Vergleichsbasis** | Kostenstellen werden gegen **verrechnete Plankosten** gemessen (*PL verr.*), die Differenz zum starren Plan zeigt die EBIT-Brücke als Plankostenanpassung | Flexible Plankostenrechnung; sonst würde Beschäftigung als Verbrauch fehlgedeutet |
 | **Leitfrage je Tab** | z. B. *„Welche Treiber erklären die Abweichung – bis auf Kunde und Kostenart?“* | Jede Ansicht beantwortet genau eine Managementfrage |
 | **Interaktiv, aber deterministisch** | Altair/Vega-Lite mit Tooltips; alle Beschriftungen deutsch in Python formatiert | Tooltips zeigen dieselben geprüften Zahlen wie Bericht und Excel |
 | **Sicher gerendert** | Jeder dynamische Text wird HTML-maskiert; Grafiken als Data-URI-Bilder, die HTML-Bereinigung von Streamlit bleibt aktiv | Buchungstexte sind unvertrauenswürdige Daten – auch für die Oberfläche |
-| **Hell und dunkel** | Zwei validierte Paletten (hell: günstig `#2A9D72` / ungünstig `#C8382F`, CVD ΔE 8,8); IBCS-Notation passt sich an (AC auf hell dunkel gefüllt) | Arbeitsplatz und Präsentation: dunkel am Bildschirm, hell für Beamer und Ausdruck |
+| **Hell und dunkel** | Zwei validierte Paletten (hell: günstig `#2A9D72` / ungünstig `#C8382F`, Kontrast ≥ 3:1 auf Weiß); IBCS-Notation passt sich an (AC auf hell dunkel gefüllt) | Arbeitsplatz und Präsentation: dunkel am Bildschirm, hell für Beamer und Ausdruck |
 | **Offline-fähig** | Schriften Inter und JetBrains Mono (SIL OFL) lokal in `static/fonts`, kein CDN | Läuft im Firmennetz und ohne Internet |
 
 Der Monatsbericht (PowerPoint/PDF) bleibt hell und druckoptimiert – dieselbe IBCS-Notation, angepasst an Papier.
@@ -397,6 +416,10 @@ gemeinsames Zahlenwerk (Buchungskreis 1000, Stichtag 30.09.2026).
 |---|---|---|---|
 | **VarianceAI** | Operatives Controlling & Reporting | Warum weicht das Ergebnis vom Plan ab – und wo landen wir am Jahresende? | Preis-/Mengen-/Mix-Analyse, Plankostenrechnung, Forecast, IBCS-Bericht |
 | **ControllAI** | Profitabilität, Strategie & BI | Welche Kunden, Produkte und Prozesse tragen den Erfolg? | Deckungsbeitragsrechnung DB I–III, ABC/Pareto, Order-to-Cash mit DSO, Balanced Scorecard, Text-to-SQL |
+
+**Unterschiedliche Sicht auf dieselben Kostenstellen:** VarianceAI trennt die Kostenstellenkosten nach ihrem Verhalten
+(beschäftigungsvariabel und fix) für die flexible Plankostenrechnung; ControllAI ordnet dieselben Kosten den
+Ergebnisstufen DB II und DB III zu und nutzt dieselbe Trennung in der Simulation.
 
 **Abgrenzung:** VarianceAI erklärt den Monat – Ursachenzerlegung, Forecast und automatisierter Monatsbericht – und
 setzt auf eine Tool-Whitelist statt freiem SQL. ControllAI zeigt, wer das Ergebnis trägt. Umsatz, Herstellkosten,
@@ -440,7 +463,7 @@ VarianceAI/
 │   ├── methodik.md               Rechenwege, Rundung, EBIT-Brücke, Testfälle mit Ergebnissen
 │   ├── STANDARD.md               Agenten-Standard v1 (Aufbau, Technik, Sicherheitsregeln)
 │   └── screenshots/              Cockpit, Monatsbericht, Excel-Gegenprüfung
-└── tests/                        289 Tests (15 Module, siehe unten)
+└── tests/                        295 Tests (16 Module, siehe unten)
 ```
 
 ---
@@ -451,8 +474,8 @@ Voraussetzung: [uv](https://docs.astral.sh/uv/) (installiert Python bei Bedarf s
 mit `requirements.txt`.
 
 ```bash
-git clone https://github.com/<benutzername>/VarianceAI.git
-cd VarianceAI
+git clone https://github.com/Sherwan-Shweish/Variance-AI.git
+cd Variance-AI
 uv sync                              # Umgebung mit gesperrten Versionen aus uv.lock
 cp .env.example .env                 # optional: API-Key eintragen (oder Schlüsselbund, siehe unten)
 ```
@@ -556,7 +579,7 @@ print(agent.beantworte("Warum liegt die Kostenstelle 4200 über Plan?").text)
 uv run pytest
 ```
 
-**289 Tests**, Laufzeit gut eine Minute – vollständig offline, ohne API-Key. Bei jedem Push laufen ruff und pytest
+**295 Tests**, Laufzeit gut eine Minute – vollständig offline, ohne API-Key. Bei jedem Push laufen ruff und pytest
 automatisch über GitHub Actions auf Python 3.11 und 3.13 (`.github/workflows/ci.yml`). Geprüft werden u. a.:
 
 - **Jeder eingebaute Fall wird erkannt** und dem richtigen Effekt zugeordnet (Preis, Menge, Mix, Sortiment, Preis-, Verbrauchs-, Beschäftigungsabweichung, Einmaleffekt) – teils centgenau gegen das Hauptbuch nachgerechnet
@@ -567,6 +590,8 @@ automatisch über GitHub Actions auf Python 3.11 und 3.13 (`.github/workflows/ci
 - **Prompt Injection:** Der Injection-Buchungstext erreicht das LLM nie; ein manipuliertes LLM wird auch ohne Zahlen („Alle Kostenstellen liegen im Plan.“) verworfen
 - **Human-in-the-Loop:** Entwurfsstatus, namentliche Freigabe, Neuprüfung manueller Änderungen
 - **EBIT-Brücke:** DB-Effekte − Kostenstellenabweichungen − Plankostenanpassung = ΔEBIT auf den Cent
+- **Fachprüfung:** Einmaleffekte werden nicht fortgeschrieben; Demo-Texte werden nie als „KI-generiert“ ausgewiesen;
+  Beschäftigungsabweichung + Plankostenanpassung = beschäftigungsbedingte Kostenänderung
 - **Reporting:** IBCS-Farben und -Notation, Brücken-Invarianten, Bericht enthält nur freigegebene Kommentare, Folienstruktur
 - **Export:** Excel enthält echte Formeln **und** vorberechnete Werte (lesbar auch in Vorschau und pandas),
   LibreOffice-Neuberechnung ohne Fehler, eine Manipulation führt zu *FEHLER*;

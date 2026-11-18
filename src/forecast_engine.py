@@ -5,7 +5,8 @@
   (``statsmodels`` ETS(A,Ad,A)).
 * **Methodenwahl je Zeitreihe** per Backtesting mit Rolling Origin nach WAPE.
   Bei Gleichstand gewinnt die einfachere Methode (saisonal-naiv).
-* **Jahresendprognose** = Ist YTD + Prognose der Restmonate.
+* **Jahresendprognose** = Ist YTD + Prognose der Restmonate. Einmaleffekte (als einmalig
+  gekennzeichnete Kostenarten) bleiben im Ist YTD, werden aber nicht in die Restmonate fortgeschrieben.
 * **Prognoseintervalle** per Simulation (fester Seed → reproduzierbar). Das
   Intervall der Jahresendprognose wird über simulierte Pfade gebildet und
   berücksichtigt damit die Korrelation der Fehler über die Restmonate.
@@ -45,10 +46,13 @@ SAISON = 12
 # =============================================================================
 
 
-def monatsreihe(daten: Datenbestand, kennzahl: Kennzahlname, version: str = "IST") -> pd.Series:
+def monatsreihe(daten: Datenbestand, kennzahl: Kennzahlname, version: str = "IST",
+                ohne_einmaleffekte: bool = False) -> pd.Series:
     """Monatswerte einer Kennzahl in Cent, Index = ``pd.Period`` (Monat).
 
     Umsatz und Deckungsbeitrag positiv; Kosten = Summe der Kostenstellenkosten.
+    ``ohne_einmaleffekte`` lässt als einmalig gekennzeichnete Kostenarten (z. B. Sonderabschreibung) weg –
+    das ist die Prognosebasis: Ein Einmaleffekt gehört ins Ist, wird aber nicht fortgeschrieben.
     """
     a = daten.acdoca[daten.acdoca["version"] == version]
     typ = a["racct"].map(daten.kostenarttyp())
@@ -58,6 +62,9 @@ def monatsreihe(daten: Datenbestand, kennzahl: Kennzahlname, version: str = "IST
         z, faktor = a[typ.isin(["ERLOES", "HK"])], -1
     else:
         z, faktor = a[(typ == "KOSTEN") & a["rcntr"].notna()], 1
+        if ohne_einmaleffekte:
+            einmalig = set(daten.kostenarten.loc[daten.kostenarten["einmalig"].astype(bool), "racct"])
+            z = z[~z["racct"].isin(einmalig)]
     summen = z.groupby(["gjahr", "poper"])["hsl_cent"].sum() * faktor
     index = pd.PeriodIndex([pd.Period(year=int(j), month=int(p), freq="M") for j, p in summen.index], freq="M")
     return pd.Series(summen.to_numpy(dtype="int64"), index=index, name=kennzahl).sort_index()
@@ -214,6 +221,7 @@ class Forecastergebnis:
     monate: list[Monatsprognose]
     guete: list[ForecastGuete] = field(default_factory=list)
     versionen: dict[str, dict[int, int]] = field(default_factory=dict)  # Version → {Periode: Cent}
+    einmaleffekte_ytd_cent: int = 0  # im Ist YTD enthalten, aus der Prognosebasis herausgenommen
 
 
 def _cent(wert: float) -> int:
@@ -258,10 +266,15 @@ def prognostiziere(
     """Jahresendprognose einer Kennzahl inkl. Methodenwahl, Intervall, Szenarien und Güte."""
     e = einstellungen or Einstellungen()
     fe, gj, periode = e.forecast, e.geschaeftsjahr, e.periode
-    serie = _bis(reihe if reihe is not None else monatsreihe(daten, kennzahl), gj, periode)
+    # Ist YTD enthält alles Gebuchte; die Prognosebasis ist um Einmaleffekte bereinigt (keine Fortschreibung).
+    voll = _bis(reihe if reihe is not None else monatsreihe(daten, kennzahl), gj, periode)
+    basis = reihe if reihe is not None else monatsreihe(daten, kennzahl, ohne_einmaleffekte=True)
+    serie = _bis(basis, gj, periode)
+    _pruefe_lueckenlos(voll)
     _pruefe_lueckenlos(serie)
     y = serie.to_numpy(dtype=float)
-    ist_ytd = int(serie[serie.index.year == gj].sum())
+    ist_ytd = int(voll[voll.index.year == gj].sum())
+    einmal_ytd = ist_ytd - int(serie[serie.index.year == gj].sum())
     rest = 12 - periode
     plan = monatsreihe(daten, kennzahl, "PLAN")
     plan_gesamtjahr = int(plan[plan.index.year == gj].sum())
@@ -297,8 +310,8 @@ def prognostiziere(
         intervall_oben=_eur(oben),
         szenarien=_szenarien(kennzahl, ist_ytd, rest_cent, e.szenarien),
     )
-    ergebnis = Forecastergebnis(kennzahl, info, methode, backtests, monate)
-    ergebnis.versionen, ergebnis.guete = _versionen_und_guete(reihe if reihe is not None else monatsreihe(daten, kennzahl), gj, periode, fe)
+    ergebnis = Forecastergebnis(kennzahl, info, methode, backtests, monate, einmaleffekte_ytd_cent=einmal_ytd)
+    ergebnis.versionen, ergebnis.guete = _versionen_und_guete(basis, gj, periode, fe)
     logger.info("Forecast %s: %s, WAPE %.1f %%, Jahresendprognose %s €.", kennzahl, methode.value,
                 backtests[methode].wape_pct, info.jahresendprognose)
     return ergebnis

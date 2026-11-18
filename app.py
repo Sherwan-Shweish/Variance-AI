@@ -209,6 +209,9 @@ with st.sidebar:
     llm = erstelle_llm_client(anbieter)
     if anbieter != "mock" and isinstance(llm, MockLLMClient):
         st.warning("Kein API-Key bzw. SDK gefunden – Demo-Modus aktiv.")
+    if isinstance(llm, MockLLMClient):
+        st.caption("Demo-Modus: Kommentare und Antworten stammen aus hinterlegten Regeln, nicht aus einem "
+                   "Sprachmodell. Alle Zahlen berechnet Python.")
     st.caption("Alle Daten sind synthetisch. Die RheinMain Industrietechnik GmbH ist fiktiv.")
     with st.expander("Systemprüfung"):
         from src.diagnose import bericht  # noqa: PLC0415
@@ -364,6 +367,17 @@ def _seite_uebersicht() -> None:
                 "in T€ · günstig grün, ungünstig rot", en="EBIT Bridge",
             ))
             diagramm(dia.bruecke(ebit, hoehe=330), "Wasserfall der EBIT-Abweichung vom Plan zum Ist nach Treibern")
+            with st.expander("So ist die Brücke zu lesen"):
+                st.caption(
+                    "EBIT (vereinfacht) = Umsatz − variable Standardherstellkosten (Material, Zukaufteile) − Kosten der "
+                    "Kostenstellen; ohne Vertriebs- und Verwaltungskosten. "
+                    "Menge, Mix, Preis und Sortiment erklären die Abweichung des Deckungsbeitrags. "
+                    "Die Kostenstellen folgen der flexiblen Plankostenrechnung: Preis-, Verbrauchs- und "
+                    "Beschäftigungsabweichung messen Ist gegen verrechnete Plankosten (Plankosten × Beschäftigungsgrad). "
+                    "„Plankosten“ (Plankostenanpassung) ist die Differenz zwischen verrechneten und geplanten Kosten. "
+                    "Beschäftigungsabweichung und Plankostenanpassung zusammen ergeben die Kostenänderung, die allein aus "
+                    "der abweichenden Beschäftigung folgt (variable Plankosten × (Beschäftigungsgrad − 1))."
+                )
         with st.container(border=True):
             k1, k2 = st.columns([1, 3])
             k1.html('<div class="va va-ueberschrift" style="margin-top:8px"><span>Monatsverlauf</span></div>')
@@ -539,6 +553,11 @@ def _seite_forecast() -> None:
                   f'<p class="va-unter">in T€ je Monat · AC gefüllt · FC gestrichelt mit '
                   f'{ui.e(format_prozent(i.konfidenzniveau_pct, 0, vorzeichen=False))}-Intervall · PL umrandet</p></div>')  # type: ignore[arg-type]
             diagramm(dia.forecastverlauf(abschluss, fc_name), f"Monatsverlauf {fc_name}: Ist, Forecast mit Intervall, Plan")
+            if fc.einmaleffekte_ytd_cent:
+                st.caption(
+                    f"Einmaleffekte von {format_betrag(Decimal(fc.einmaleffekte_ytd_cent) / 100, 'T€')} sind im Ist YTD "
+                    "enthalten, aber aus der Prognosebasis herausgenommen – sie werden nicht in die Restmonate fortgeschrieben."
+                )
 
         zeige(ui.karte(ui.szenarien([
             (s.name, format_betrag(s.wert, "Mio. €"),
@@ -554,7 +573,8 @@ def _seite_forecast() -> None:
                  b.wape_pct / schlechteste, "gut" if b.methode is fc.methode else "leise")
                 for b in sorted(fc.backtests.values(), key=lambda b: b.wape_pct)
             ]) + '<p class="va-unter" style="margin-top:4px">Prognosefehler im Rückblick (Backtesting) – die Methode mit '
-                 'dem kleineren Fehler wird verwendet.</p>', "Methodenwahl", "Method Selection"))
+                 'dem kleineren Fehler wird verwendet. Die Werte stammen aus synthetischen Daten und sagen nichts '
+                 'über die Güte bei echten Unternehmensdaten.</p>', "Methodenwahl", "Method Selection"))
         with s2:
             if fc.guete:
                 guete = ui.tabelle(["Forecast", "erstellt", "WAPE", "Bias"], [
@@ -562,7 +582,7 @@ def _seite_forecast() -> None:
                      (format_prozent(Decimal(str(g.wape_pct)), vorzeichen=False), None),
                      (format_prozent(Decimal(str(g.bias_pct))), None)] for g in fc.guete])
                 zeige(ui.karte(guete + '<p class="va-unter" style="margin-top:8px">Bias &gt; 0: Forecast lag über dem '
-                                       'eingetretenen Ist.</p>', "Trefferquote früherer Forecasts", "Forecast Accuracy"))
+                                       'eingetretenen Ist.</p>', "Prognosegüte früherer Forecasts", "Forecast Accuracy"))
             else:
                 st.info("Noch keine frühere Forecast-Version mit eingetretenem Ist vorhanden.")
 
@@ -593,7 +613,7 @@ def _seite_kommentare() -> None:
                                           "; ".join(ablehnungsgruende(k.verworfener_ki_text, objekt)) or "Faktenprüfung",
                                           "regelbasierter Ersatz")
                         protokolliere(kontext, "ENTWURF", "neutral", objekt,
-                                      f"{k.quelle.value} · {sum(f.belegt for f in k.pruefung.funde)} Zahlen belegt",
+                                      f"{k.quellenangabe} · {sum(f.belegt for f in k.pruefung.funde)} Zahlen belegt",
                                       k.modell)
     with steuer_rechts:
         controller = st.text_input("Name für die Freigabe", placeholder="z. B. Max Mustermann")
@@ -610,7 +630,7 @@ def _seite_kommentare() -> None:
             belege = sum(f.belegt for f in k.pruefung.funde)
             pills = [
                 ui.pill("Freigegeben" if frei else "Entwurf", "gut" if frei else "akzent", punkt=True),
-                ui.pill(k.quelle.value, "leise"),
+                ui.pill(k.quellenangabe, "leise"),
                 ui.pill(f"Faktenprüfung {'bestanden' if k.pruefung.bestanden else 'nicht bestanden'} · {belege} belegt",
                         "gut" if k.pruefung.bestanden else "schlecht"),
             ]
@@ -701,7 +721,8 @@ def _seite_frage() -> None:
             st.write(antwort.frage)
         with st.chat_message("assistant", avatar=":material/query_stats:"):
             st.write(antwort.text)
-            quelle = "KI-generiert, geprüft" if antwort.quelle is Textquelle.LLM else "regelbasiert (Fallback)"
+            quelle = (f"{antwort.quellenangabe}, geprüft" if antwort.quelle is Textquelle.LLM
+                      else "regelbasiert (Fallback)")
             belegt = sum(f.belegt for f in antwort.pruefung.funde)
             bestanden = antwort.pruefung.bestanden
             glieder = [(t.name + (f"({', '.join(f'{k}={v}' for k, v in t.argumente.items())})" if t.argumente else ""),
