@@ -1,24 +1,23 @@
 # VarianceAI
 
-**KI-Agent für Plan-Ist-Analyse, Forecasting und Management-Reporting im operativen Controlling**
+**Plan-Ist-Analyse, Forecast und IBCS-Monatsbericht für das operative Controlling**
 
+**Live-Demo:** <https://variance-ai-shweish.streamlit.app> · **Stack:** Python, SQL (SQLite), Streamlit, Excel- und Power-BI-Export
+
+[![Tests](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
-![Pydantic](https://img.shields.io/badge/Validierung-Pydantic%20v2-E92063)
-![Tests](https://img.shields.io/badge/Tests-288%20bestanden-2EA44F)
 ![Offline](https://img.shields.io/badge/Demo-ohne%20API--Key-0A66C2)
 ![macOS](https://img.shields.io/badge/macOS-Desktop--App-555555?logo=apple)
 ![Lizenz](https://img.shields.io/badge/Lizenz-MIT-lightgrey)
-![Status](https://img.shields.io/badge/Status-fertig%20(Schritt%203%20von%203)-2EA44F)
 
 > *Warum weicht das Ergebnis vom Plan ab – und wo landen wir am Jahresende?*
 
-VarianceAI automatisiert den monatlichen Reporting-Zyklus der fiktiven **RheinMain Industrietechnik GmbH**:
-Datenprüfung im Monatsabschluss, Zerlegung von Abweichungen in Preis-, Mengen-, Mix- und
-Kostenstelleneffekte, rollierende Jahresendprognose und ein Monatsbericht nach IBCS – ergänzt um
-einen KI-Agenten, der Management-Kommentare formuliert und Rückfragen beantwortet.
+**Kurzfassung:** VarianceAI bildet den monatlichen Controlling-Zyklus eines fiktiven Industrieunternehmens ab:
+Plan-Ist-Vergleich, Zerlegung der Abweichungen in Preis-, Mengen- und Mixeffekte, rollierender Forecast und
+Monatsbericht nach IBCS.
 
-Die KI rechnet dabei **keine einzige Zahl**. Sie formuliert ausschließlich auf Basis eines in Python
-berechneten Faktenblatts, und jede Zahl in ihrem Text wird vor der Übernahme automatisch gegengeprüft.
+Alle Zahlen berechnet Python; die KI formuliert nur Kommentare, deren Zahlen automatisch geprüft werden.
+Portfolio-Projekt mit synthetischen Daten.
 
 ---
 
@@ -26,19 +25,20 @@ berechneten Faktenblatts, und jede Zahl in ihrem Text wird vor der Übernahme au
 
 1. [Einblick: Cockpit und Monatsbericht](#einblick-cockpit-und-monatsbericht)
 2. [Business Value für den Monatsabschluss](#business-value-für-den-monatsabschluss)
-3. [Leitprinzip: Determinismus vor KI](#leitprinzip-determinismus-vor-ki)
-4. [Architektur](#architektur)
-5. [Fachliche Methodik](#fachliche-methodik)
-6. [KI-Controller-Agent](#ki-controller-agent)
-7. [Cockpit und Designsystem](#cockpit-und-designsystem)
-8. [Reporting und Export](#reporting-und-export)
-9. [Unternehmenseinsatz: SAP-Anbindung und KI-Schlüssel](#unternehmenseinsatz-sap-anbindung-und-ki-schlüssel)
-10. [Einordnung im Portfolio](#einordnung-im-portfolio)
-11. [Projektstruktur](#projektstruktur)
-12. [Installation & Schnellstart](#installation--schnellstart)
-13. [Tests](#tests)
-14. [Roadmap](#roadmap)
-15. [Hinweise](#hinweise)
+3. [Funktionsumfang](#funktionsumfang)
+4. [Fachliche Methodik](#fachliche-methodik)
+5. [Reporting und Export](#reporting-und-export)
+6. [Leitprinzip: Determinismus vor KI](#leitprinzip-determinismus-vor-ki)
+7. [Architektur](#architektur)
+8. [KI-Controller-Agent](#ki-controller-agent)
+9. [Cockpit und Designsystem](#cockpit-und-designsystem)
+10. [Unternehmenseinsatz: SAP-Anbindung und KI-Schlüssel](#unternehmenseinsatz-sap-anbindung-und-ki-schlüssel)
+11. [Einordnung im Portfolio](#einordnung-im-portfolio)
+12. [Projektstruktur](#projektstruktur)
+13. [Installation & Schnellstart](#installation--schnellstart)
+14. [Tests](#tests)
+15. [Glossar Deutsch–Englisch](#glossar-deutschenglisch)
+16. [Hinweise](#hinweise)
 
 ---
 
@@ -48,7 +48,7 @@ Monatsabschluss September 2026 im Offline-Modus (synthetische Daten, Seed 42). A
 reproduzierbar aus `python demo.py` bzw. `streamlit run app.py`.
 
 **Monatsübersicht** – Kennzahlenleiste mit Monatsverlauf (Sparklines), EBIT-Brücke Plan → Ist als Hauptgrafik
-und der *Controller-Copilot*: Abschluss-Scan, deterministische Kernaussagen und Ablauf bis zur Freigabe.
+und der *Controller-Copilot* mit den Kernaussagen des Monats und dem Abschluss-Status.
 
 ![Monatsübersicht](docs/screenshots/01_monatsuebersicht.png)
 
@@ -60,8 +60,8 @@ und der *Controller-Copilot*: Abschluss-Scan, deterministische Kernaussagen und 
 | ![KI-Kommentare](docs/screenshots/04_ki_kommentare.png) | ![Frag den Controller](docs/screenshots/05_frag_den_controller.png) |
 | Entwürfe prüfen, bearbeiten und namentlich freigeben | Antwort mit Tool-Kette und belegten Quellzahlen |
 
-**Agent & Audit** – Agenten-Pipeline mit ihren Regeln, Trichter vom Analyseobjekt zum Bericht, Prompt-Injection-Test
-per Knopfdruck und append-only Audit-Protokoll (Export als JSON):
+**Agent & Audit** – so arbeitet VarianceAI: Rollen und Regeln, der Weg von der Abweichung zum Bericht,
+Prompt-Injection-Test per Knopfdruck und Audit-Protokoll (Export als JSON):
 
 ![Agent und Audit](docs/screenshots/06_agent_audit.png)
 
@@ -95,56 +95,22 @@ Fachbereichen – bei voller Nachvollziehbarkeit jeder Zahl.
 
 ---
 
-## Leitprinzip: Determinismus vor KI
+## Funktionsumfang
 
-| Grundsatz | Umsetzung |
+| Bereich | Was VarianceAI leistet |
 |---|---|
-| **Alle Zahlen kommen aus Python** | Beträge in Cent, Effekte exakt mit `Fraction`, Rundung erst bei der Ausgabe (Largest-Remainder, Summe bleibt centgenau), abgesichert durch mathematische Invarianten in pytest |
-| **Das LLM sieht nur ein Faktenblatt** | Strukturiertes JSON (Pydantic-validiert) bzw. Ergebnisse fest definierter Analysefunktionen |
-| **Null-Halluzinations-Prüfung** | Jede Zahl im KI-Text wird mit Wert, Einheit, Vorzeichen und Rundung gegen das Faktenblatt abgeglichen; zusätzlich prüft eine Konsistenzprüfung Pflichtangaben und Bewertung. Fehlschlag → Text wird verworfen, regelbasierter Standardkommentar wird erzeugt |
-| **Human-in-the-Loop** | KI-Kommentare sind `Entwurf`. Erst die namentliche Freigabe durch den Controller macht sie berichtsfähig – manuelle Änderungen werden erneut geprüft |
-| **Offline-Modus** | Ohne API-Key läuft das gesamte Projekt mit einem deterministischen Mock-Client vollständig durch |
+| **Datenprüfung im Monatsabschluss** | Neun Prüfpunkte mit Ampel und Protokoll: Vollständigkeit, Summenabstimmung, Dubletten, Vorzeichen, Periodenzuordnung; bei Rot ist die Analyse gesperrt |
+| **Plan-Ist-Analyse Umsatz** | Zerlegung in Preis-, Mengen-, Mix- und Sortimentseffekt, centgenau additiv, Drill-down bis Kunde |
+| **Kostenstellen** | Flexible Plankostenrechnung: Preis-, Verbrauchs- und Beschäftigungsabweichung, Einmaleffekte getrennt |
+| **Ergebnis** | Vereinfachte Ergebnisrechnung und EBIT-Brücke Plan → Ist ohne Restgröße |
+| **Forecast** | Rollierende Jahresendprognose (saisonal-naiv, Holt-Winters), Methodenwahl per Backtesting nach WAPE, Szenarien Best/Base/Worst |
+| **KI-Kommentare** | Entwürfe im Controlling-Stil, jede Zahl automatisch geprüft, namentliche Freigabe vor dem Bericht |
+| **Frag den Controller** | Fragen in deutscher Sprache, Antwort mit Tool-Kette und belegten Quellzahlen |
+| **Reporting und Export** | Monatsbericht nach IBCS als PowerPoint und PDF, Excel mit Formel-Gegenprüfung, Power-BI-Paket (Sternschema, DAX) |
+| **Betrieb** | Browser, Mac-App im eigenen Fenster, vollständiger Offline-Modus ohne API-Key, Audit-Protokoll |
 
----
-
-## Architektur
-
-```mermaid
-flowchart LR
-    subgraph Daten["1 · Daten & Abschlussprüfung"]
-        GEN["seed_data.py<br/>(synthetisch, fester Seed)"] --> DB[("SQLite<br/>ACDOCA-Stil<br/>Ist · Plan · Forecast")]
-        DB --> CHK{"datenpruefung.py<br/>Ampel + Protokoll"}
-    end
-
-    subgraph Engines["2 · Deterministische Engines (Python)"]
-        VAR["variance_engine.py<br/>Preis · Menge · Mix · Sortiment<br/>Preis · Verbrauch · Beschäftigung"]
-        FC["forecast_engine.py<br/>Saisonal-naiv · Holt-Winters · WAPE"]
-    end
-
-    CHK -->|"grün / gelb (bereinigt)"| VAR & FC
-    CHK -.->|rot| STOP["Analyse gesperrt"]
-    FC -->|"Forecast-Version"| VAR
-    VAR & FC --> FB[["Faktenblatt<br/>(JSON, Pydantic)"]]
-    VAR --> EB["EngineBackend<br/>vollständiger Analysebaum"]
-
-    subgraph Agent["3 · KI-Controller-Agent"]
-        FB --> LLM["LLM<br/>Claude · Gemini · Mock"]
-        LLM <-->|"nur Whitelist-Tools"| TOOLS["abweichung_holen · drilldown<br/>top_treiber · forecast_holen"]
-        TOOLS --- EB
-        LLM --> PRF{"Zahlen- und<br/>Konsistenzprüfung"}
-        PRF -->|bestanden| ENT["Kommentar-Entwurf"]
-        PRF -->|"nicht bestanden"| REG["Regelbasierter<br/>Standardkommentar"]
-        REG --> ENT
-        ENT --> HITL{"Freigabe durch<br/>Controller"}
-    end
-
-    subgraph Reporting["4 · Reporting & Export"]
-        HITL -->|freigegeben| BER["reporting_ibcs.py<br/>Monatsbericht IBCS<br/>PowerPoint · PDF"]
-        FB --> XLS["exporter.py<br/>Excel mit<br/>Formel-Gegenprüfung"]
-        FB --> PBI["exporter.py<br/>Power BI<br/>Sternschema · DAX"]
-        UI["app.py · run_agent.py · demo.py<br/>Cockpit · CLI · Demo"]
-    end
-```
+Mögliche Erweiterungen: Anbindung an echte SAP-Extrakte (CSV/OData), Kommentarhistorie über mehrere Monate,
+Mehrmandantenfähigkeit.
 
 ---
 
@@ -245,6 +211,79 @@ Zahlenformat nach deutschem Standard: `1.234,5 T€`, `1,2 Mio. €`, `−4,2 %`
 
 ---
 
+## Reporting und Export
+
+| Ausgabe | Modul | Inhalt |
+|---|---|---|
+| **Monatsbericht PowerPoint** | `src/reporting_ibcs.py` | 8 Folien (16:9): Titel, Management Summary, EBIT-Brücke, Umsatzbrücke, Kostenstellen, Forecast, freigegebene Kommentare, Datenprüfung |
+| **Monatsbericht PDF** | `src/reporting_ibcs.py` | A4 quer, gleiche Inhalte, deutsches Zahlenformat |
+| **Excel-Bericht** | `src/exporter.py` | Blätter *Hinweise, Gegenprüfung, Ergebnisrechnung, Abweichungen, Kostenstellen, Forecast*; Eingaben blau, Formeln schwarz, Ergebniswerte vorberechnet |
+| **Power-BI-Paket** | `src/exporter.py` | Sternschema als CSV (3 Fakten, 6 Dimensionen inkl. Kalender), `measures.dax`, `power_query.m`, Modellbeschreibung |
+
+- **Nur Freigegebenes geht in den Bericht:** Kommentare im Status *Entwurf* erscheinen weder in PowerPoint noch im PDF.
+- **Formel-Gegenprüfung:** Treibersummen, Abweichungen, Plankostenrechnung, Ergebnisrechnung, Drill-down und
+  Szenarien stehen in Excel als echte Formeln. Das Blatt *Gegenprüfung* vergleicht sie mit dem Python-Ergebnis;
+  `pruefe_excel()` rechnet die Datei mit LibreOffice neu (9 Prüfungen, 0 Formelfehler). Wird ein Wert in Excel
+  manipuliert, springt der Gesamtstatus auf *FEHLER*.
+- **Power BI im deutschen Format:** Semikolon, Dezimalkomma, `TT.MM.JJJJ`, UTF-8 mit BOM; Kalender als lückenlose
+  Tagesdimension 2023–2026 mit Geschäftsjahr, Quartal und Monatsnamen. Die Summen im Paket stimmen centgenau mit der
+  Analyse überein; DAX-Measures referenzieren nur vorhandene Spalten (beides per Test geprüft).
+
+---
+
+## Leitprinzip: Determinismus vor KI
+
+| Grundsatz | Umsetzung |
+|---|---|
+| **Alle Zahlen kommen aus Python** | Beträge in Cent, Effekte exakt mit `Fraction`, Rundung erst bei der Ausgabe (Largest-Remainder, Summe bleibt centgenau), abgesichert durch mathematische Invarianten in pytest |
+| **Das LLM sieht nur ein Faktenblatt** | Strukturiertes JSON (Pydantic-validiert) bzw. Ergebnisse fest definierter Analysefunktionen |
+| **Null-Halluzinations-Prüfung** | Jede Zahl im KI-Text wird mit Wert, Einheit, Vorzeichen und Rundung gegen das Faktenblatt abgeglichen; zusätzlich prüft eine Konsistenzprüfung Pflichtangaben und Bewertung. Fehlschlag → Text wird verworfen, regelbasierter Standardkommentar wird erzeugt |
+| **Human-in-the-Loop** | KI-Kommentare sind `Entwurf`. Erst die namentliche Freigabe durch den Controller macht sie berichtsfähig – manuelle Änderungen werden erneut geprüft |
+| **Offline-Modus** | Ohne API-Key läuft das gesamte Projekt mit einem deterministischen Mock-Client vollständig durch |
+
+---
+
+## Architektur
+
+```mermaid
+flowchart LR
+    subgraph Daten["1 · Daten & Abschlussprüfung"]
+        GEN["seed_data.py<br/>(synthetisch, fester Seed)"] --> DB[("SQLite<br/>ACDOCA-Stil<br/>Ist · Plan · Forecast")]
+        DB --> CHK{"datenpruefung.py<br/>Ampel + Protokoll"}
+    end
+
+    subgraph Engines["2 · Deterministische Engines (Python)"]
+        VAR["variance_engine.py<br/>Preis · Menge · Mix · Sortiment<br/>Preis · Verbrauch · Beschäftigung"]
+        FC["forecast_engine.py<br/>Saisonal-naiv · Holt-Winters · WAPE"]
+    end
+
+    CHK -->|"grün / gelb (bereinigt)"| VAR & FC
+    CHK -.->|rot| STOP["Analyse gesperrt"]
+    FC -->|"Forecast-Version"| VAR
+    VAR & FC --> FB[["Faktenblatt<br/>(JSON, Pydantic)"]]
+    VAR --> EB["EngineBackend<br/>vollständiger Analysebaum"]
+
+    subgraph Agent["3 · KI-Controller-Agent"]
+        FB --> LLM["LLM<br/>Claude · Gemini · Mock"]
+        LLM <-->|"nur Whitelist-Tools"| TOOLS["abweichung_holen · drilldown<br/>top_treiber · forecast_holen"]
+        TOOLS --- EB
+        LLM --> PRF{"Zahlen- und<br/>Konsistenzprüfung"}
+        PRF -->|bestanden| ENT["Kommentar-Entwurf"]
+        PRF -->|"nicht bestanden"| REG["Regelbasierter<br/>Standardkommentar"]
+        REG --> ENT
+        ENT --> HITL{"Freigabe durch<br/>Controller"}
+    end
+
+    subgraph Reporting["4 · Reporting & Export"]
+        HITL -->|freigegeben| BER["reporting_ibcs.py<br/>Monatsbericht IBCS<br/>PowerPoint · PDF"]
+        FB --> XLS["exporter.py<br/>Excel mit<br/>Formel-Gegenprüfung"]
+        FB --> PBI["exporter.py<br/>Power BI<br/>Sternschema · DAX"]
+        UI["app.py · run_agent.py · demo.py<br/>Cockpit · CLI · Demo"]
+    end
+```
+
+---
+
 ## KI-Controller-Agent
 
 Der Agent (`src/agent.py`) erzeugt Management-Kommentare auf Deutsch und beantwortet Fragen wie
@@ -334,34 +373,12 @@ Der Monatsbericht (PowerPoint/PDF) bleibt hell und druckoptimiert – dieselbe I
 
 ---
 
-## Reporting und Export
-
-| Ausgabe | Modul | Inhalt |
-|---|---|---|
-| **Monatsbericht PowerPoint** | `src/reporting_ibcs.py` | 8 Folien (16:9): Titel, Management Summary, EBIT-Brücke, Umsatzbrücke, Kostenstellen, Forecast, freigegebene Kommentare, Datenprüfung |
-| **Monatsbericht PDF** | `src/reporting_ibcs.py` | A4 quer, gleiche Inhalte, deutsches Zahlenformat |
-| **Excel-Bericht** | `src/exporter.py` | Blätter *Hinweise, Gegenprüfung, Ergebnisrechnung, Abweichungen, Kostenstellen, Forecast*; Eingaben blau, Formeln schwarz, Ergebniswerte vorberechnet |
-| **Power-BI-Paket** | `src/exporter.py` | Sternschema als CSV (3 Fakten, 6 Dimensionen inkl. Kalender), `measures.dax`, `power_query.m`, Modellbeschreibung |
-
-- **Nur Freigegebenes geht in den Bericht:** Kommentare im Status *Entwurf* erscheinen weder in PowerPoint noch im PDF.
-- **Formel-Gegenprüfung:** Treibersummen, Abweichungen, Plankostenrechnung, Ergebnisrechnung, Drill-down und
-  Szenarien stehen in Excel als echte Formeln. Das Blatt *Gegenprüfung* vergleicht sie mit dem Python-Ergebnis;
-  `pruefe_excel()` rechnet die Datei mit LibreOffice neu (9 Prüfungen, 0 Formelfehler). Wird ein Wert in Excel
-  manipuliert, springt der Gesamtstatus auf *FEHLER*.
-- **Power BI im deutschen Format:** Semikolon, Dezimalkomma, `TT.MM.JJJJ`, UTF-8 mit BOM; Kalender als lückenlose
-  Tagesdimension 2023–2026 mit Geschäftsjahr, Quartal und Monatsnamen. Die Summen im Paket stimmen centgenau mit der
-  Analyse überein; DAX-Measures referenzieren nur vorhandene Spalten (beides per Test geprüft).
-
----
-
 ## Unternehmenseinsatz: SAP-Anbindung und KI-Schlüssel
 
-Wie VarianceAI in einem Unternehmen produktiv betrieben wird – SAP-Anbindung (OData auf freigegebenen CDS-Views,
-technischer Benutzer, Feldzuordnung ACDOCA), Ablage des KI-Schlüssels (`.env`, Schlüsselbund, Secret-Manager),
-Betrieb, Datenschutz, Einführungsplan und Antworten für das Vorstellungsgespräch – beschreibt der Leitfaden
-[`docs/Leitfaden_Unternehmenseinsatz.docx`](docs/Leitfaden_Unternehmenseinsatz.docx). Vertiefend:
-[`docs/SAP-Anbindung.docx`](docs/SAP-Anbindung.docx) (Datenobjekte, Feldzuordnung ACDOCA/ACDOCP, Anbindungsvarianten,
-zehn Schritte) und [`docs/Kennzahlen_und_Diagramme.docx`](docs/Kennzahlen_und_Diagramme.docx) (jede Kennzahl mit Rechenweg und Demo-Wert).
+So würde VarianceAI in einem Unternehmen produktiv betrieben: Die Daten kommen über OData aus freigegebenen
+CDS-Views (technischer Benutzer, Feldzuordnung ACDOCA/ACDOCP), der KI-Schlüssel liegt im Secret-Manager bzw. im
+macOS-Schlüsselbund, und die Anmeldung läuft über Single Sign-on. Dieses Repository enthält keinen produktiven
+SAP-Konnektor; die Tabelle zeigt, welcher Baustein der Demo im Betrieb ersetzt wird.
 
 | Baustein | Demo (dieses Repository) | Produktivbetrieb |
 |---|---|---|
@@ -373,18 +390,17 @@ zehn Schritte) und [`docs/Kennzahlen_und_Diagramme.docx`](docs/Kennzahlen_und_Di
 
 ## Einordnung im Portfolio
 
-VarianceAI gehört zur RheinMain Controlling-Suite: vier Agenten, dasselbe fiktive Unternehmen, ein Zahlenwerk
-(Buchungskreis 1000, Stichtag 30.09.2026). Kette: DataGuard-AI → FlowAudit-AI → VarianceAI → ControllAI.
+VarianceAI und ControllAI bilden zusammen eine kleine Controlling-Suite: dasselbe fiktive Unternehmen und ein
+gemeinsames Zahlenwerk (Buchungskreis 1000, Stichtag 30.09.2026).
 
 | Projekt | Ebene | Kernfrage | Schwerpunkte |
 |---|---|---|---|
-| **DataGuard-AI** | Stammdatenqualität & S/4HANA-Readiness | Sind unsere Kunden- und Lieferantenstammdaten korrekt, eindeutig und bereit für S/4HANA? | DAMA-Dimensionen, IBAN/USt-IdNr.-Prüfziffern, Dubletten (Blocking, rapidfuzz), Golden Record, CVI |
-| **ControllAI** | Strategisches Controlling & BI | Wohin steuert das Unternehmen? | Balanced Scorecard, Text-to-SQL, Process Mining |
-| **FlowAudit-AI** | Operative Prozesse (Purchase-to-Pay) | Laufen die Prozesse korrekt? | E-Rechnung, 3-Way-Matching, BPMN/eEPK |
 | **VarianceAI** | Operatives Controlling & Reporting | Warum weicht das Ergebnis vom Plan ab – und wo landen wir am Jahresende? | Preis-/Mengen-/Mix-Analyse, Plankostenrechnung, Forecast, IBCS-Bericht |
+| **ControllAI** | Profitabilität, Strategie & BI | Welche Kunden, Produkte und Prozesse tragen den Erfolg? | Deckungsbeitragsrechnung DB I–III, ABC/Pareto, Order-to-Cash mit DSO, Balanced Scorecard, Text-to-SQL |
 
-**Abgrenzung:** ControllAI zeigt Plan-Ist-Abweichungen auf KPI-Ebene. VarianceAI geht eine Ebene tiefer –
-Ursachenzerlegung, Forecast und automatisierter Monatsbericht – und setzt auf eine Tool-Whitelist statt freiem SQL.
+**Abgrenzung:** VarianceAI erklärt den Monat – Ursachenzerlegung, Forecast und automatisierter Monatsbericht – und
+setzt auf eine Tool-Whitelist statt freiem SQL. ControllAI zeigt, wer das Ergebnis trägt. Umsatz, Herstellkosten,
+Kostenstellenkosten und EBIT stimmen in beiden Projekten centgenau überein.
 
 ---
 
@@ -395,6 +411,7 @@ VarianceAI/
 ├── README.md
 ├── LICENSE                       MIT
 ├── .gitignore
+├── .github/workflows/ci.yml     Automatische Prüfung bei jedem Push: ruff und pytest (Python 3.11 und 3.13)
 ├── .env.example                  LLM-Anbieter, Modell-IDs, Limits (ohne Secrets)
 ├── CLAUDE.md                     Arbeitsregeln für KI-gestützte Entwicklung (Agenten-Standard v1)
 ├── pyproject.toml · uv.lock      Abhängigkeiten (uv, gesperrte Versionen), pytest- und ruff-Konfiguration
@@ -421,12 +438,9 @@ VarianceAI/
 ├── prompts/README.md             Prompt-Versionierung
 ├── docs/
 │   ├── methodik.md               Rechenwege, Rundung, EBIT-Brücke, Testfälle mit Ergebnissen
-│   ├── STANDARD.md               Agenten-Standard v1 (Vorlage für alle weiteren Agenten)
-│   ├── Leitfaden_Unternehmenseinsatz.docx   SAP-Anbindung, KI-Schlüssel, Betrieb, Interviewfragen
-│   ├── SAP-Anbindung.docx                   Anbindung an echte Unternehmensdaten Schritt für Schritt
-│   ├── Kennzahlen_und_Diagramme.docx        jede Seite, jede Kennzahl, jedes Diagramm erklärt
+│   ├── STANDARD.md               Agenten-Standard v1 (Aufbau, Technik, Sicherheitsregeln)
 │   └── screenshots/              Cockpit, Monatsbericht, Excel-Gegenprüfung
-└── tests/                        288 Tests (15 Module, siehe unten)
+└── tests/                        289 Tests (15 Module, siehe unten)
 ```
 
 ---
@@ -466,16 +480,11 @@ uv run streamlit run app.py                         # Webmodus: festes dunkles T
 AGENT_LAUFZEIT=lokal uv run streamlit run app.py    # lokal mit Umschalter hell/dunkel
 ```
 
-### Online-Demo (Streamlit Community Cloud)
+### Online-Demo
 
-1. Repository auf GitHub veröffentlichen (`.env` ist ausgeschlossen – nie einen API-Schlüssel einchecken).
-2. Auf [share.streamlit.io](https://share.streamlit.io) mit GitHub anmelden → *Create app* → Repository, Branch
-   `main`, Datei `app.py`, Python 3.12 → *Deploy*.
-3. Ohne Schlüssel läuft die Demo im Offline-Modus (Mock-Agent) – kostenlos und für jeden Besucher gleich.
-
-Im Webbetrieb teilen sich alle Besucher einen Server; deshalb ist das Thema dort fest und es werden keine
-Einstellungen gespeichert (`AGENT_LAUFZEIT`, siehe [Agenten-Standard](docs/STANDARD.md)). Die LibreOffice-gestützte
-Excel-Gegenprüfung wird in der Cloud übersprungen; alle Exporte funktionieren.
+Ohne Installation: <https://variance-ai-shweish.streamlit.app>. Die Demo läuft im Offline-Modus (Mock-Agent, kein
+API-Key) mit festem dunklem Thema; die LibreOffice-gestützte Excel-Gegenprüfung wird dort übersprungen, alle Exporte
+funktionieren.
 
 **Kompletter Monatsabschluss im Offline-Modus (ohne API-Key, rund 10 Sekunden):**
 
@@ -494,8 +503,8 @@ streamlit run app.py
 ```
 
 Tabs *Monatsübersicht*, *Abweichungsanalyse*, *Forecast*, *KI-Kommentare*, *Frag den Controller* und
-*Agent & Audit*. In der Seitenleiste lassen sich Berichtsperiode, Monat/YTD, Wesentlichkeitsschwellen, Seed und
-KI-Anbieter wählen.
+*Agent & Audit*. In der Seitenleiste stehen Berichtsperiode und Monat/YTD; Wesentlichkeitsschwellen, KI-Anbieter und
+Seed liegen unter *Einstellungen*.
 
 **Kommandozeile:**
 
@@ -544,11 +553,11 @@ print(agent.beantworte("Warum liegt die Kostenstelle 4200 über Plan?").text)
 ## Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
-Stand v1.2: **288 Tests bestanden** in gut einer Minute – vollständig offline, ohne API-Key, verifiziert in einer
-frischen virtuellen Umgebungen (Python 3.11 und 3.13) nur aus `requirements.txt`. Geprüft werden u. a.:
+**289 Tests**, Laufzeit gut eine Minute – vollständig offline, ohne API-Key. Bei jedem Push laufen ruff und pytest
+automatisch über GitHub Actions auf Python 3.11 und 3.13 (`.github/workflows/ci.yml`). Geprüft werden u. a.:
 
 - **Jeder eingebaute Fall wird erkannt** und dem richtigen Effekt zugeordnet (Preis, Menge, Mix, Sortiment, Preis-, Verbrauchs-, Beschäftigungsabweichung, Einmaleffekt) – teils centgenau gegen das Hauptbuch nachgerechnet
 - **Mathematische Invarianten auf den Cent** über alle 687 Analyseobjekte: Summe aller Effekte = Gesamtabweichung; Summe Drill-down = Gesamtebene; Effekte ab Produktgruppe additiv über alle Ebenen; Jahresendprognose = Ist YTD + Restmonate; Forecast reproduzierbar bei festem Seed
@@ -575,15 +584,22 @@ Die Rechenwege und alle Testfälle mit Ergebnissen sind in [`docs/methodik.md`](
 
 ---
 
-## Roadmap
+## Glossar Deutsch–Englisch
 
-- [x] **Schritt 1** – Verzeichnisstruktur, README, KI-Agent (System-Prompt, Schemata, Faktenprüfung, Tool-Whitelist, LLM-Clients inkl. Mock), erste Tests
-- [x] **Schritt 2** – Datengenerator mit 11 eingebauten Fällen, SQLite im ACDOCA-Stil, Monatsabschluss-Prüfung mit Ampel, Abweichungsanalyse- und Forecast-Engine, Anbindung der Tool-Whitelist, erweiterte Tests
-- [x] **Schritt 3** – Streamlit-Cockpit mit Designsystem und Audit-Ansicht, EBIT-Brücke, IBCS-Reporting (PowerPoint/PDF), Excel mit Formel-Gegenprüfung, Power-BI-Paket, CLI, Demo und Endkontrolle
-- [x] **v1.2** – Mac-App (pywebview) nach [Agenten-Standard v1](docs/STANDARD.md), Darstellung hell/dunkel, uv mit Lock-Datei
+Die Oberfläche ist deutsch; die englischen Fachbegriffe stehen als Zweitbeschriftung an Seiten, Kennzahlen und Karten.
 
-Mögliche Erweiterungen: Anbindung an echte SAP-Extrakte (CSV/OData), Kommentarhistorie über mehrere Monate,
-Mehrmandantenfähigkeit.
+| Deutsch | Englisch |
+|---|---|
+| Monatsübersicht | Monthly Overview |
+| Abweichungsanalyse (Plan-Ist) | Variance Analysis (Plan vs. Actual) |
+| Umsatz · Deckungsbeitrag · Kostenstellenkosten | Revenue · Contribution Margin · Cost Center Costs |
+| Preis-, Mengen-, Mixeffekt | Price, Volume, Mix Effect |
+| Verbrauchs-, Beschäftigungsabweichung | Usage Variance, Volume (Capacity) Variance |
+| EBIT-Brücke | EBIT Bridge |
+| Jahresendprognose · Bandbreite | Year-End Forecast · Range |
+| Wesentlichkeit | Materiality |
+| KI-Kommentare · Freigabe | AI Commentary · Approval |
+| Audit-Protokoll | Audit Log |
 
 ---
 
@@ -601,4 +617,4 @@ Mehrmandantenfähigkeit.
 MIT-Lizenz – siehe [LICENSE](LICENSE).
 
 **Sherwan Shweish** · B.Sc. Digital Business Management, Hochschule RheinMain
-Schwerpunkte: Datenanalyse, Controlling, digitale Transformation · Python, SQL, Excel, Power BI, BPMN/eEPK, SAP S/4HANA
+Fokus: Controlling, Datenanalyse und Reporting · Python, SQL, Excel, Power BI, BPMN/eEPK, SAP S/4HANA

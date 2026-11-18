@@ -1,6 +1,6 @@
 [project]
 name = "varianceai"
-version = "1.2.0"
+version = "1.3.0"
 description = "KI-Agent für Plan-Ist-Analyse, Forecasting und Management-Reporting im operativen Controlling"
 readme = "README.md"
 requires-python = ">=3.11"

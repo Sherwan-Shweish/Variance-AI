@@ -247,6 +247,9 @@ h1, h2, h3 {{ letter-spacing: -.01em; }}
 .va-kpi {{ overflow: hidden; background: var(--va-karte); border: 1px solid var(--va-linie); border-radius: 14px; padding: 12px 14px;
   display: flex; flex-direction: column; min-width: 0; }}
 .va-kpi--hervor {{ border-color: {rgba(f['akzent'], .45)}; box-shadow: inset 0 0 0 1px {rgba(f['akzent'], .12)}; }}
+.va-kpi-kopf {{ min-height: 2.25rem; }}
+.va-en {{ font-size: .68rem; color: var(--va-leise); opacity: .75; letter-spacing: .02em; white-space: nowrap; font-weight: 500; }}
+.va-kpi-kopf .va-en {{ display: block; overflow: hidden; text-overflow: ellipsis; }}
 .va-kpi-label {{ font-size: .8rem; color: var(--va-leise); font-weight: 600; letter-spacing: .02em; }}
 .va-kpi-wert {{ font-size: clamp(1.1rem, 1.55vw, 1.45rem); font-weight: 650; letter-spacing: -.015em; margin-top: 4px;
   white-space: nowrap; }}
@@ -346,8 +349,8 @@ h1, h2, h3 {{ letter-spacing: -.01em; }}
 .va-tabelle {{ width: 100%; border-collapse: collapse; font-size: .86rem; }}
 .va-tabelle th {{ text-align: right; font-weight: 600; color: var(--va-leise); font-size: .74rem; letter-spacing: .03em;
   padding: 6px 10px; border-bottom: 1px solid var(--va-linie-stark); }}
-.va-tabelle td {{ text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--va-linie); }}
-.va-tabelle th:first-child, .va-tabelle td:first-child {{ text-align: left; padding-left: 0; }}
+.va-tabelle td {{ text-align: right; white-space: nowrap; padding: 8px 10px; border-bottom: 1px solid var(--va-linie); }}
+.va-tabelle th:first-child, .va-tabelle td:first-child {{ text-align: left; padding-left: 0; white-space: normal; }}
 .va-tabelle tr.va-summe td {{ font-weight: 700; border-bottom: 0; border-top: 1px solid var(--va-linie-stark); }}
 .va-tabelle .va-gut {{ color: var(--va-gut); }} .va-tabelle .va-schlecht {{ color: var(--va-schlecht); }}
 
@@ -424,6 +427,7 @@ class Kpi:
     verlauf: Sequence[float] = ()
     vergleich: Sequence[float] = ()
     hervorheben: bool = False
+    en: str = ""          # englischer Fachbegriff als Zweitbeschriftung (Deutsch bleibt Hauptsprache)
 
 
 def kpi_leiste(kpis: Iterable[Kpi]) -> str:
@@ -433,7 +437,8 @@ def kpi_leiste(kpis: Iterable[Kpi]) -> str:
             if k.verlauf else ""
         karten.append(
             f'<div class="va-kpi{" va-kpi--hervor" if k.hervorheben else ""}">'
-            f'<div class="va-kpi-label">{e(k.label)}</div>'
+            f'<div class="va-kpi-kopf"><div class="va-kpi-label">{e(k.label)}</div>'
+            + (f'<span class="va-en">{e(k.en)}</span>' if k.en else "") + "</div>"
             f'<div class="va-kpi-spark">{spark}</div>'
             f'<div class="va-kpi-wert">{e(k.wert)}</div>'
             f'<div class="va-kpi-fuss">{pill(k.delta, k.ton) if k.delta else ""}<span>{e(k.fuss)}</span></div></div>'
@@ -448,8 +453,9 @@ def kopfzeile(titel: str, untertitel: str, mitte: str, mitte_unter: str, pills: 
             f'<div class="va-kopf-rechts">{"".join(pills)}</div></div>')
 
 
-def leitfrage(frage: str) -> str:
-    return f'<div class="va va-leitfrage">{pill("Leitfrage", "akzent")}<span>{e(frage)}</span></div>'
+def leitfrage(frage: str, seite_en: str = "") -> str:
+    """Kopf einer Seite: englischer Seitenname als Marke, daneben die deutsche Leitfrage."""
+    return f'<div class="va va-leitfrage">{pill(seite_en or "Leitfrage", "akzent")}<span>{e(frage)}</span></div>'
 
 
 def karte(inhalt: str, ueberschrift: str | None = None, rechts: str = "", klasse: str = "") -> str:
@@ -458,8 +464,8 @@ def karte(inhalt: str, ueberschrift: str | None = None, rechts: str = "", klasse
     return f'<div class="va va-karte {klasse}">{kopf}{inhalt}</div>'
 
 
-def held(label: str, zahl: str, einheit: str, pills: Iterable[str], botschaft: str, unter: str) -> str:
-    return (f'<div class="va-ueberschrift"><span>{e(label)}</span><span></span></div>'
+def held(label: str, zahl: str, einheit: str, pills: Iterable[str], botschaft: str, unter: str, en: str = "") -> str:
+    return (f'<div class="va-ueberschrift"><span>{e(label)}</span><span>{e(en)}</span></div>'
             f'<div class="va-held"><div class="va-held-zahl">{e(zahl)}<small>{e(einheit)}</small></div>'
             f'<div class="va-held-meta">{"".join(pills)}</div></div>'
             f'<div style="margin-top:16px"><p class="va-botschaft">{e(botschaft)}</p><p class="va-unter">{e(unter)}</p></div>')
@@ -541,7 +547,7 @@ def agentenkarten(karten: Iterable[Agentenkarte]) -> str:
         f'<div class="va-agent{" va-agent--aktiv" if k.aktiv else ""}"><div class="va-agent-kopf">'
         f'<div class="va-stufe-symbol">{symbol(k.symbol, 16)}</div><div><b>{e(k.name)}</b></div>'
         f'{pill(k.status, k.ton)}</div><p>{e(k.aufgabe)}</p><p class="va-regel">{e(k.regel)}</p>'
-        f'<span class="va-mono">{e(k.stand)}</span></div>'
+        + (f'<span class="va-mono">{e(k.stand)}</span>' if k.stand else "") + "</div>"
         for k in karten
     )
     return f'<div class="va-agenten">{teile}</div>'

@@ -37,3 +37,6 @@ Thumbs.db
 
 # Streamlit: Konfiguration ins Repo, Secrets nie
 .streamlit/secrets.toml
+
+# --- Persönliche Lernunterlagen (Gesprächsvorbereitung), nicht Teil des Repositorys ---
+docs/privat/

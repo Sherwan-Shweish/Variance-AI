@@ -160,12 +160,10 @@ def diagramm(chart, beschreibung: str) -> None:  # noqa: ANN001
 def abweichungstabelle(objekte: list[Abweichung]) -> pd.DataFrame:
     return pd.DataFrame([
         {
-            "ID": a.id, "Objekt": a.bezeichnung, "Ebene": a.ebene, "Vergleich": a.vergleich.value,
-            "Ist": teur(a.ist), "Vergleichswert": teur(a.vergleichswert),
+            "Objekt": a.bezeichnung, "Ebene": a.ebene,
             "Δ": format_wert(a.delta_abs, a.einheit, vorzeichen=True),  # type: ignore[arg-type]
             "Δ %": format_prozent(a.delta_pct) if a.delta_pct is not None else "–",
             "Bewertung": a.bewertung.value if a.bewertung else "",
-            "wesentlich": "●" if a.wesentlich else "",
             "Haupttreiber": a.haupttreiber.effektart.value if a.haupttreiber else "–",
         }
         for a in objekte
@@ -198,26 +196,25 @@ def ablehnungsgruende(text: str, objekt_id: str) -> list[str]:
 
 with st.sidebar:
     zeige('<div class="va va-marke" style="margin:4px 0 14px"><div class="va-logo">Δ</div><div><b>VarianceAI</b>'
-          '<small>Plan-Ist · Forecast · Reporting</small></div></div>')
+          '<small>Plan-Ist · Forecast · Reporting<br>Variance Analysis &amp; Forecasting</small></div></div>')
     periode = st.selectbox("Berichtsperiode 2026", list(range(1, 13)), index=8, format_func=lambda p: MONATSNAMEN[p - 1])
     zeitraum = st.radio("Zeitraum", ["Monat", "YTD"], horizontal=True)
-    with st.expander("Wesentlichkeit und Daten"):
-        schwelle_eur = st.number_input("Schwelle |Δ| in €", min_value=0, value=50_000, step=10_000)
-        schwelle_pct = st.number_input("Schwelle |Δ %|", min_value=0.0, value=5.0, step=0.5)
-        seed = st.number_input("Seed der synthetischen Daten", min_value=0, value=42, step=1)
-    anbieter = st.selectbox("KI-Anbieter", ["mock", "claude", "gemini"],
-                            format_func={"mock": "Offline (Mock)", "claude": "Anthropic Claude",
-                                         "gemini": "Google Gemini"}.get)
+    with st.expander("Einstellungen"):
+        schwelle_eur = st.number_input("Wesentlich ab |Δ| in €", min_value=0, value=50_000, step=10_000)
+        schwelle_pct = st.number_input("Wesentlich ab |Δ %|", min_value=0.0, value=5.0, step=0.5)
+        anbieter = st.selectbox("KI-Anbieter", ["mock", "claude", "gemini"],
+                                format_func={"mock": "Demo ohne KI-Schlüssel", "claude": "Anthropic Claude",
+                                             "gemini": "Google Gemini"}.get)
+        seed = st.number_input("Seed der Demodaten", min_value=0, value=42, step=1)
     llm = erstelle_llm_client(anbieter)
     if anbieter != "mock" and isinstance(llm, MockLLMClient):
-        st.warning("Kein API-Key bzw. SDK gefunden – Offline-Modus aktiv.")
-    st.caption(f"Modell: `{llm.anbieter}:{llm.modell}`")
+        st.warning("Kein API-Key bzw. SDK gefunden – Demo-Modus aktiv.")
+    st.caption("Alle Daten sind synthetisch. Die RheinMain Industrietechnik GmbH ist fiktiv.")
     with st.expander("Systemprüfung"):
         from src.diagnose import bericht  # noqa: PLC0415
 
+        st.caption(f"Modell: `{llm.anbieter}:{llm.modell}`")
         st.code(bericht(), language=None)
-    st.divider()
-    st.caption("Alle Daten sind synthetisch. Die RheinMain Industrietechnik GmbH ist fiktiv.")
 
 try:
     abschluss = abschluss_laden(periode, int(seed), zeitraum, int(schwelle_eur), float(schwelle_pct))
@@ -260,9 +257,9 @@ if not audit(kontext):
 
 zeilen = {z.kennzahl: z for z in analyse.ergebnisrechnung}
 anzahl_ok = sum(p.ampel is Ampel.GRUEN for p in protokoll.punkte)
-modus_pill = ui.pill("Offline · Mock-Agent" if offline else f"{llm.anbieter} · {llm.modell}", "akzent", punkt=True)
+modus_pill = ui.pill("Demo-Modus" if offline else f"KI: {llm.modell}", "akzent", punkt=True)
 if UMSCHALTBAR:
-    kopf_links, kopf_rechts = st.columns([4.8, 1.25], vertical_alignment="center", gap="small")
+    kopf_links, kopf_rechts = st.columns([4.4, 1.5], vertical_alignment="center", gap="small")
     with kopf_rechts:
         wahl = st.segmented_control(
             "Darstellung", list(ui.MODI), default=darstellung, key="darstellung_wahl", width="stretch",
@@ -277,16 +274,15 @@ else:
     kopf_links = st.container()
 with kopf_links:
     zeige(ui.kopfzeile(
-        "VarianceAI", "Controlling-Copilot · RheinMain Industrietechnik GmbH (fiktiv)",
+        "VarianceAI", "Plan-Ist-Analyse und Forecast · Variance Analysis & Forecasting",
         f"Monatsabschluss {abschluss.periodenlabel}",
-        f"{'Monat' if zeitraum == 'Monat' else 'kumuliert Jan–' + MONATSNAMEN[periode - 1][:3]} · Seed {seed} · "
-        "synthetische Daten",
-        [modus_pill, ui.pill(f"Datenprüfung {protokoll.ampel.value}", AMPEL_TON[protokoll.ampel], punkt=True),
-         ui.pill(f"{len(analyse.knoten)} Analyseobjekte", "leise")],
+        f"{'Monatswerte' if zeitraum == 'Monat' else 'kumuliert Jan–' + MONATSNAMEN[periode - 1][:3]} · "
+        "RheinMain Industrietechnik GmbH (fiktiv)",
+        [modus_pill, ui.pill(f"Datenprüfung {protokoll.ampel.value}", AMPEL_TON[protokoll.ampel], punkt=True)],
     ))
 
 
-def kpi_aus_zeile(name: str, label: str, hervorheben: bool = False) -> ui.Kpi:
+def kpi_aus_zeile(name: str, label: str, hervorheben: bool = False, en: str = "") -> ui.Kpi:
     z = zeilen[name]
     art = Kennzahlart.KOSTEN if name.startswith("Kosten") else Kennzahlart.ERGEBNIS
     pct_pl = Decimal(z.delta_plan) * 100 / abs(Decimal(z.plan)) if z.plan else None
@@ -299,23 +295,24 @@ def kpi_aus_zeile(name: str, label: str, hervorheben: bool = False) -> ui.Kpi:
         delta=f"{format_prozent(pct_pl)} ggü. PL" if pct_pl is not None else None,
         ton=ui.ton_fuer(guenstig(Decimal(z.delta_plan), art)),
         fuss=f"PY {format_prozent(pct_py)}" if pct_py is not None else "",
-        verlauf=list(bis["ac"].fillna(0)), vergleich=list(bis["pl"].fillna(0)), hervorheben=hervorheben,
+        verlauf=list(bis["ac"].fillna(0)), vergleich=list(bis["pl"].fillna(0)), hervorheben=hervorheben, en=en,
     )
 
 
-kpis = [kpi_aus_zeile("Umsatz", "Umsatz"), kpi_aus_zeile("Deckungsbeitrag", "Deckungsbeitrag"),
-        kpi_aus_zeile("Kosten Kostenstellen", "Kosten Kostenstellen"), kpi_aus_zeile("EBIT", "EBIT", True)]
+kpis = [kpi_aus_zeile("Umsatz", "Umsatz", en="Revenue"),
+        kpi_aus_zeile("Deckungsbeitrag", "Deckungsbeitrag", en="Contribution Margin"),
+        kpi_aus_zeile("Kosten Kostenstellen", "Kosten", en="Cost Center Costs"), kpi_aus_zeile("EBIT", "EBIT", True)]
 if "Umsatz" in abschluss.forecasts:
     fi = abschluss.forecasts["Umsatz"].info
     jahr = dia.monatsdaten(abschluss, "Umsatz")
     fc_werte = {m.periode: m.wert_cent / 100_000 for m in abschluss.forecasts["Umsatz"].monate}
     kpis.append(ui.Kpi(
-        label="Jahresendprognose Umsatz", wert=format_betrag(fi.jahresendprognose, "Mio. €"),  # type: ignore[arg-type]
+        label="Jahresumsatz (FC)", wert=format_betrag(fi.jahresendprognose, "Mio. €"),  # type: ignore[arg-type]
         delta=f"{format_prozent(fi.abweichung_plan_pct)} ggü. PL",  # type: ignore[arg-type]
         ton=ui.ton_fuer(guenstig(fi.abweichung_plan_abs, Kennzahlart.ERLOES)),  # type: ignore[arg-type]
-        fuss=f"WAPE {format_prozent(fi.wape_pct, vorzeichen=False)}",  # type: ignore[arg-type]
+        fuss=f"PL {format_betrag(fi.plan_gesamtjahr, 'Mio. €')}",  # type: ignore[arg-type]
         verlauf=[v if pd.notna(v) else fc_werte.get(m, 0) for m, v in zip(jahr["m"], jahr["ac"], strict=True)],
-        vergleich=list(jahr["pl"].fillna(0)),
+        vergleich=list(jahr["pl"].fillna(0)), en="Full-Year Revenue",
     ))
 zeige(ui.kpi_leiste(kpis))
 
@@ -349,7 +346,7 @@ tab_uebersicht, tab_abweichung, tab_forecast, tab_kommentare, tab_frage, tab_aud
 # =============================================================================
 
 def _seite_uebersicht() -> None:
-    zeige(ui.leitfrage("Wie steht das Ergebnis im Berichtsmonat – und was treibt die Abweichung zum Plan?"))
+    zeige(ui.leitfrage("Wie steht das Ergebnis im Berichtsmonat – und was treibt die Abweichung zum Plan?", "Monthly Overview"))
     links, rechts = st.columns([1.75, 1], gap="medium")
     ebit = analyse.abweichung("EBIT")
     z_ebit = zeilen["EBIT"]
@@ -364,12 +361,11 @@ def _seite_uebersicht() -> None:
                  if ebit.delta_pct is not None else "",
                  ui.pill(f"{format_prozent(pct_py)} ggü. PY", "leise") if pct_py is not None else ""],
                 f"EBIT-Brücke Plan → Ist: {format_betrag(ebit.delta_abs, 'T€', vorzeichen=True)}",  # type: ignore[arg-type]
-                "in T€ · Deckungsbeitragseffekte, Kostenstellenabweichungen, Plankostenanpassung · "
-                "günstig grün, ungünstig rot",
+                "in T€ · günstig grün, ungünstig rot", en="EBIT Bridge",
             ))
             diagramm(dia.bruecke(ebit, hoehe=330), "Wasserfall der EBIT-Abweichung vom Plan zum Ist nach Treibern")
         with st.container(border=True):
-            k1, k2 = st.columns([2, 3])
+            k1, k2 = st.columns([1, 3])
             k1.html('<div class="va va-ueberschrift" style="margin-top:8px"><span>Monatsverlauf</span></div>')
             verlauf_kz = k2.segmented_control("Kennzahl im Monatsverlauf", ["Umsatz", "Deckungsbeitrag", "EBIT", "Kosten"],
                                               default="EBIT", key="verlauf_kz", label_visibility="collapsed")
@@ -391,57 +387,28 @@ def _seite_uebersicht() -> None:
             ])
         summen = [i for i, z in enumerate(analyse.ergebnisrechnung) if z.kennzahl in ("Deckungsbeitrag", "EBIT")]
         zeige(ui.karte(ui.tabelle(["in T€", "AC", "PL", "ΔPL", "ΔPL %", "PY", "ΔPY"], tabellenzeilen, summen),
-                       "Vereinfachte Ergebnisrechnung", ui.pill("Excel-Gegenprüfung: Formeln = Python", "leise")))
+                       "Vereinfachte Ergebnisrechnung", "Simplified P&amp;L"))
 
     with rechts:
-        entwuerfe = [k for k in speicher.values() if k.status is Freigabestatus.ENTWURF]
-        freigegeben = berichtsfaehige_kommentare(speicher.values())
-        verworfen = sum(1 for k in speicher.values() if k.verworfener_ki_text)
         wesentlich = sum(a.wesentlich for a in analyse.knoten.values())
         scan = [
-            ("Datenprüfung", f"{protokoll.ampel.value} · {anzahl_ok}/{len(protokoll.punkte)} ohne Befund",
+            ("Datenprüfung", f"{protokoll.ampel.value} · {anzahl_ok} von {len(protokoll.punkte)} ohne Befund",
              AMPEL_TON[protokoll.ampel]),
-            ("Abweichungsanalyse", f"{wesentlich} wesentlich", "gut"),
-            ("EBIT-Brücke", "centgenau geschlossen", "gut"),
+            ("Abweichungen", f"{wesentlich} wesentlich", "gut"),
         ]
         if "Umsatz" in abschluss.forecasts:
             fc_u = abschluss.forecasts["Umsatz"]
             scan.append(("Forecast", f"{fc_u.methode.value} · WAPE "
                                      f"{format_prozent(fc_u.info.wape_pct, vorzeichen=False)}", "gut"))  # type: ignore[arg-type]
-        scan.append(("Faktenprüfung KI-Texte", "aktiv · jede Zahl belegt", "gut"))
-        ablauf_status = [
-            ("Prüfen", "fertig" if protokoll.analyse_freigegeben else "aktiv"),
-            ("Analysieren", "fertig"),
-            ("Prognose", "fertig" if abschluss.forecasts else "offen"),
-            ("Kommentar", "fertig" if speicher else "aktiv"),
-            ("Freigabe", "fertig" if speicher and not entwuerfe else ("aktiv" if speicher else "offen")),
-        ]
-        aussagen = "".join(f'<p class="va-absatz">{ui.e(a)}</p>' for a in kernaussagen(abschluss))
+        aussagen = "".join(f'<p class="va-absatz">{ui.e(a)}</p>' for a in kernaussagen(abschluss)[:-1])
         copilot = (
             f'<div class="va-copilot-kopf"><div class="va-logo">Δ</div><div><b>Controller-Copilot</b>'
-            f'{ui.pill("Offline · regelbasiert + Mock-LLM" if offline else llm.modell, "akzent")}</div></div>'
-            f'<div class="va-ueberschrift"><span>Abschluss-Scan</span><span>{len(scan)} Prüfungen</span></div>'
-            f'{ui.checkliste(scan, fortschritt=1.0)}'
-            f'<div class="va-ueberschrift" style="margin-top:18px"><span>Kernaussagen</span>'
-            f'<span>deterministisch aus Python</span></div>{aussagen}'
-            f'<div class="va-ueberschrift" style="margin-top:18px"><span>Ablauf</span><span></span></div>'
-            f'{ui.ablauf(ablauf_status)}'
+            f'<small class="va-leise" style="display:block;font-size:.78rem">Das Wichtigste im Monat</small></div></div>'
+            f'<div class="va-ueberschrift"><span>Kernaussagen</span><span>Key Messages</span></div>{aussagen}'
+            f'<div class="va-ueberschrift" style="margin-top:18px"><span>Abschluss-Status</span><span>Closing Status</span></div>'
+            f'{ui.checkliste(scan)}'
         )
         zeige(ui.karte(copilot))
-        status = (
-            f'<div style="display:flex;gap:14px;align-items:center">'
-            f'{ui.ring(anzahl_ok / max(len(protokoll.punkte), 1), f"{anzahl_ok}/{len(protokoll.punkte)}", AMPEL_TON[protokoll.ampel])}'
-            f'<div><b>Datenqualität {ui.e(protokoll.ampel.value)}</b><div class="va-leise" style="font-size:.8rem">'
-            f'{ui.e(len(protokoll.punkte) - anzahl_ok)} Prüfpunkte mit Hinweis · '
-            f'{"Analyse freigegeben" if protokoll.analyse_freigegeben else "Analyse gesperrt"}</div></div></div>'
-            f'<div class="va-ueberschrift" style="margin-top:16px"><span>Kommentare</span><span></span></div>'
-            + ui.statistik([(str(len(entwuerfe)), "Entwürfe", "neutral"), (str(len(freigegeben)), "freigegeben", "gut"),
-                            (str(verworfen), "KI-Texte verworfen", "schlecht" if verworfen else "leise")])
-            + f'<div class="va-ueberschrift" style="margin-top:16px"><span>Auto-Freigabe</span>'
-              f'{ui.pill("aus", "leise")}</div><p class="va-absatz va-leise" style="font-size:.8rem">'
-              'Jeder Kommentar wird namentlich vom Controller freigegeben. Entwürfe erscheinen nie im Bericht.</p>'
-        )
-        zeige(ui.karte(status))
         with st.expander(f"Prüfprotokoll der Datenprüfung ({protokoll.ampel.value})",
                          expanded=protokoll.ampel is Ampel.ROT):
             st.markdown(protokoll.als_markdown())
@@ -451,7 +418,7 @@ def _seite_uebersicht() -> None:
 # =============================================================================
 
 def _seite_abweichung() -> None:
-    zeige(ui.leitfrage("Welche Treiber erklären die Abweichung – bis auf Kunde und Kostenart?"))
+    zeige(ui.leitfrage("Welche Treiber erklären die Abweichung – bis auf Kunde und Kostenart?", "Variance Analysis"))
     kopf1, kopf2, _ = st.columns([1.3, 1.3, 2])
     kennzahl = kopf1.selectbox("Kennzahl", list(WURZELN), key="abw_kennzahl")
     vergleich = kopf2.radio("Vergleich", ["Plan", "Vorjahr"], horizontal=True, key="abw_vergleich",
@@ -481,19 +448,19 @@ def _seite_abweichung() -> None:
 
     ton = ui.ton_fuer(guenstig(aktuell.delta_abs or 0, aktuell.art))
     zeige(ui.kpi_leiste([
-        ui.Kpi("Ist (AC)", teur(aktuell.ist)),
+        ui.Kpi("Ist (AC)", teur(aktuell.ist), en="Actual"),
         ui.Kpi(f"Vergleichswert ({dia.basis_kuerzel(aktuell)})", teur(aktuell.vergleichswert),
-               fuss=vergleichstext(aktuell).removeprefix("ggü. ")),
+               fuss=vergleichstext(aktuell).removeprefix("ggü. "), en="Comparison"),
         ui.Kpi("Abweichung", format_wert(aktuell.delta_abs, aktuell.einheit, vorzeichen=True),  # type: ignore[arg-type]
                format_prozent(aktuell.delta_pct) if aktuell.delta_pct is not None else None, ton,
-               fuss=aktuell.bewertung.value if aktuell.bewertung else "", hervorheben=True),
-        ui.Kpi("Haupttreiber", aktuell.haupttreiber.effektart.value if aktuell.haupttreiber else "–",
+               fuss=" · ".join(t for t in (aktuell.bewertung.value if aktuell.bewertung else "",
+                                           "wesentlich" if aktuell.wesentlich else "nicht wesentlich") if t),
+               hervorheben=True, en="Variance"),
+        ui.Kpi("Haupttreiber", dia.kurz_effekt(aktuell.haupttreiber.effektart.value) if aktuell.haupttreiber else "–",
                format_wert(aktuell.haupttreiber.betrag, aktuell.einheit, vorzeichen=True)  # type: ignore[arg-type]
                if aktuell.haupttreiber else None,
                ui.ton_fuer(guenstig(aktuell.haupttreiber.betrag, aktuell.art)) if aktuell.haupttreiber else "neutral",
-               fuss="Einmaleffekt" if aktuell.einmaleffekt else ""),
-        ui.Kpi("Wesentlichkeit", "wesentlich" if aktuell.wesentlich else "nicht wesentlich",
-               fuss=f"Schwelle {format_betrag(Decimal(schwelle_eur), 'T€')} und {format_prozent(Decimal(str(schwelle_pct)), vorzeichen=False)}"),
+               fuss="Einmaleffekt" if aktuell.einmaleffekt else "", en="Main Driver"),
     ]))
 
     kinder = analyse.drilldown(aktuell.id)
@@ -505,37 +472,14 @@ def _seite_abweichung() -> None:
             zeige(f'<div class="va"><p class="va-botschaft">{ui.e(aktuell.bezeichnung)}: '
                   f'{ui.e(format_wert(aktuell.delta_abs, aktuell.einheit, vorzeichen=True))} '
                   f'{ui.e(vergleichstext(aktuell))}</p>'  # type: ignore[arg-type]
-                  f'<p class="va-unter">in T€ · {"Abweichungsbrücke (Basis 0)" if nur_abw else f"Brücke {basis} → AC"}'
-                  ' · günstig grün, ungünstig rot</p></div>')
+                  f'<p class="va-unter">in T€ · {"Abweichung nach Effekten" if nur_abw else f"Brücke {basis} → AC"}</p></div>')
             diagramm(dia.bruecke(aktuell, hoehe=300), f"Brücke {basis} zu AC für {aktuell.bezeichnung}")
     if kinder:
         with b2, st.container(border=True):
             zeige(f'<div class="va"><p class="va-botschaft">Abweichungen der Unterebene ({ui.e(kinder[0].ebene)})</p>'
                   f'<p class="va-unter">Δ in T€ · größte {min(len(kinder), 12)} von {len(kinder)}</p></div>')
             diagramm(dia.abweichungsbalken(kinder), f"Abweichungen der Unterebene von {aktuell.bezeichnung}")
-    if aktuell.datentexte:
-        with st.expander("Buchungstexte manueller Buchungen (unvertrauenswürdige Daten)"):
-            for text in aktuell.datentexte:
-                st.code(text, language=None)
-            st.caption("Diese Texte werden dem KI-Agenten nur bereinigt übergeben und in der Oberfläche nie als HTML "
-                       "interpretiert.")
-
-    f_links, f_rechts = st.columns([1.9, 1], gap="medium")
-    with f_links, st.container(border=True):
-        zeige('<div class="va va-ueberschrift"><span>Wesentlichkeitsfilter</span><span></span></div>')
-        f1, f2, f3 = st.columns(3)
-        min_eur = f1.number_input("|Δ| ab (€)", min_value=0, value=int(schwelle_eur), step=10_000)
-        min_pct = f2.number_input("|Δ %| ab", min_value=0.0, value=float(schwelle_pct), step=0.5)
-        nur_vergleich = f3.selectbox("Vergleichsart", ["Plan-Ist", "Ist-Vorjahr", "Ist-Forecast", "alle"])
-        gefiltert = [
-            a for a in analyse.knoten.values()
-            if abs(a.delta_abs or 0) >= min_eur and (a.delta_pct is None or abs(a.delta_pct) >= Decimal(str(min_pct)))
-            and (nur_vergleich == "alle" or a.vergleich.value == nur_vergleich)
-        ]
-        gefiltert.sort(key=lambda a: -abs(a.delta_abs or 0))
-        st.caption(f"{len(gefiltert)} von {len(analyse.knoten)} Analyseobjekten erfüllen den Filter.")
-        st.dataframe(abweichungstabelle(gefiltert), hide_index=True, width="stretch", height=360)
-    with f_rechts:
+    with b2:
         rang = analyse.top_treiber(8).eintraege
         groesster = max((abs(r.betrag) for r in rang), default=Decimal(1)) or Decimal(1)
         zeige(ui.karte(ui.rangliste([
@@ -543,14 +487,32 @@ def _seite_abweichung() -> None:
              format_wert(r.betrag, r.einheit, vorzeichen=True), float(abs(r.betrag) / groesster),
              ui.ton_fuer(guenstig(r.betrag, analyse.abweichung(r.objekt_id).art)))
             for r in rang
-        ]), "Top-Treiber", "Treiberebene, ohne Doppelzählung"))
+        ]), "Top-Treiber", "Top Drivers"))
+    if aktuell.datentexte:
+        with st.expander("Buchungstexte manueller Buchungen (unvertrauenswürdige Daten)"):
+            for text in aktuell.datentexte:
+                st.code(text, language=None)
+            st.caption("Diese Texte werden dem KI-Agenten nur bereinigt übergeben und in der Oberfläche nie als HTML "
+                       "interpretiert.")
+
+    with st.container(border=True):
+        zeige('<div class="va va-ueberschrift"><span>Alle Abweichungen</span><span>All Variances</span></div>')
+        f1, f2, _ = st.columns([1, 1.4, 2], vertical_alignment="bottom")
+        nur_vergleich = f1.selectbox("Vergleich", ["Plan-Ist", "Ist-Vorjahr", "Ist-Forecast"], key="abw_liste_vergleich")
+        nur_wesentliche = f2.toggle("nur wesentliche Abweichungen", value=True, key="abw_liste_wesentlich")
+        gefiltert = [a for a in analyse.knoten.values()
+                     if a.vergleich.value == nur_vergleich and (a.wesentlich or not nur_wesentliche)]
+        gefiltert.sort(key=lambda a: -abs(a.delta_abs or 0))
+        st.dataframe(abweichungstabelle(gefiltert), hide_index=True, width="stretch", height=330)
+        st.caption(f"{len(gefiltert)} Abweichungen · wesentlich ab {format_betrag(Decimal(schwelle_eur), 'T€')} und "
+                   f"{format_prozent(Decimal(str(schwelle_pct)), vorzeichen=False)} (Einstellungen in der Seitenleiste)")
 
 # =============================================================================
 # 3 · Forecast
 # =============================================================================
 
 def _seite_forecast() -> None:
-    zeige(ui.leitfrage("Wo landen wir am Jahresende – und wie verlässlich ist die Prognose?"))
+    zeige(ui.leitfrage("Wo landen wir am Jahresende – und wie verlässlich ist die Prognose?", "Forecast"))
     if not abschluss.forecasts:
         st.info("Für diese Periode liegt kein Forecast vor.")
     else:
@@ -563,14 +525,13 @@ def _seite_forecast() -> None:
             ui.Kpi("Jahresendprognose", format_betrag(i.jahresendprognose, "Mio. €"),  # type: ignore[arg-type]
                    f"{format_prozent(i.abweichung_plan_pct)} ggü. PL",  # type: ignore[arg-type]
                    ui.ton_fuer(guenstig(i.abweichung_plan_abs, art)),  # type: ignore[arg-type]
-                   fuss=f"PL {format_betrag(i.plan_gesamtjahr, 'Mio. €')}", hervorheben=True),  # type: ignore[arg-type]
-            ui.Kpi("Ist YTD", format_betrag(i.ist_ytd, "Mio. €"), fuss=f"Jan–{MONATSNAMEN[periode - 1][:3]}"),
+                   fuss=f"PL {format_betrag(i.plan_gesamtjahr, 'Mio. €')}", hervorheben=True, en="Year-End Forecast"),  # type: ignore[arg-type]
+            ui.Kpi("Ist YTD", format_betrag(i.ist_ytd, "Mio. €"), fuss=f"Jan–{MONATSNAMEN[periode - 1][:3]}", en="Actual YTD"),
             ui.Kpi("Prognose Restmonate", format_betrag(i.prognose_restmonate, "Mio. €"),  # type: ignore[arg-type]
-                   fuss=f"{12 - periode} Monate"),
-            ui.Kpi(f"Intervall {format_prozent(i.konfidenzniveau_pct, 0, vorzeichen=False)}",  # type: ignore[arg-type]
-                   f"{unten}–{format_betrag(i.intervall_oben, 'Mio. €')}", fuss="2.000 simulierte Pfade, fester Seed"),  # type: ignore[arg-type]
-            ui.Kpi("Methode", fc.methode.value,
-                   fuss=f"Backtesting-WAPE {format_prozent(i.wape_pct, vorzeichen=False)}"),  # type: ignore[arg-type]
+                   fuss=f"{12 - periode} Monate", en="Remaining"),
+            ui.Kpi(f"Bandbreite {format_prozent(i.konfidenzniveau_pct, 0, vorzeichen=False)} · Mio. €",  # type: ignore[arg-type]
+                   f"{unten}–{format_betrag(i.intervall_oben, 'Mio. €').removesuffix(' Mio. €')}",  # type: ignore[arg-type]
+                   fuss=f"Methode {fc.methode.value}", en="Range"),
         ]))
         with st.container(border=True):
             zeige(f'<div class="va"><p class="va-botschaft">Jahresendprognose {ui.e(fc_name)} '
@@ -579,39 +540,38 @@ def _seite_forecast() -> None:
                   f'{ui.e(format_prozent(i.konfidenzniveau_pct, 0, vorzeichen=False))}-Intervall · PL umrandet</p></div>')  # type: ignore[arg-type]
             diagramm(dia.forecastverlauf(abschluss, fc_name), f"Monatsverlauf {fc_name}: Ist, Forecast mit Intervall, Plan")
 
-        s1, s2 = st.columns([1.25, 1], gap="medium")
+        zeige(ui.karte(ui.szenarien([
+            (s.name, format_betrag(s.wert, "Mio. €"),
+             f"Restmonate {format_prozent(s.anpassung_pct)}" if s.anpassung_pct is not None else "", s.annahme)
+            for s in i.szenarien
+        ]), "Szenarien zum Jahresende", "Scenarios"))
+        s1, s2 = st.columns(2, gap="medium")
         with s1:
-            zeige(ui.karte(ui.szenarien([
-                (s.name, format_betrag(s.wert, "Mio. €"),
-                 f"Restmonate {format_prozent(s.anpassung_pct)}" if s.anpassung_pct is not None else "", s.annahme)
-                for s in i.szenarien
-            ]), "Szenarien", "Annahmen konfigurierbar in src/config.py"))
-            if fc.guete:
-                guete = ui.tabelle(["Version", "Ursprung", "Monate", "WAPE", "Bias"], [
-                    [(g.version, None), (f"nach Periode {g.ursprung_periode}", None),
-                     (", ".join(str(p) for p in g.perioden), None),
-                     (format_prozent(Decimal(str(g.wape_pct)), vorzeichen=False), None),
-                     (format_prozent(Decimal(str(g.bias_pct))), None)] for g in fc.guete])
-                zeige(ui.karte(guete + '<p class="va-unter" style="margin-top:8px">Bias &gt; 0: Forecast lag über dem '
-                                       'eingetretenen Ist.</p>', "Forecast-Güte über die Zeit"))
-            else:
-                st.info("Noch keine frühere Forecast-Version mit eingetretenem Ist vorhanden.")
-        with s2:
             schlechteste = max(b.wape_pct for b in fc.backtests.values()) or 1.0
             zeige(ui.karte(ui.rangliste([
-                (b.methode.value, f"{b.anzahl_prognosen} Prognosen" + (" · gewählt" if b.methode is fc.methode else ""),
+                (b.methode.value, "gewählt" if b.methode is fc.methode else "",
                  f"WAPE {format_prozent(Decimal(str(round(b.wape_pct, 1))), vorzeichen=False)}",
                  b.wape_pct / schlechteste, "gut" if b.methode is fc.methode else "leise")
                 for b in sorted(fc.backtests.values(), key=lambda b: b.wape_pct)
-            ]) + '<p class="va-unter" style="margin-top:4px">Rolling Origin, Horizont 3 Monate · bei Gleichstand gewinnt '
-                 'die einfachere Methode (saisonal-naiv).</p>', "Backtesting", "niedriger ist besser"))
+            ]) + '<p class="va-unter" style="margin-top:4px">Prognosefehler im Rückblick (Backtesting) – die Methode mit '
+                 'dem kleineren Fehler wird verwendet.</p>', "Methodenwahl", "Method Selection"))
+        with s2:
+            if fc.guete:
+                guete = ui.tabelle(["Forecast", "erstellt", "WAPE", "Bias"], [
+                    [(g.version, None), (f"nach Periode {g.ursprung_periode}", None),
+                     (format_prozent(Decimal(str(g.wape_pct)), vorzeichen=False), None),
+                     (format_prozent(Decimal(str(g.bias_pct))), None)] for g in fc.guete])
+                zeige(ui.karte(guete + '<p class="va-unter" style="margin-top:8px">Bias &gt; 0: Forecast lag über dem '
+                                       'eingetretenen Ist.</p>', "Trefferquote früherer Forecasts", "Forecast Accuracy"))
+            else:
+                st.info("Noch keine frühere Forecast-Version mit eingetretenem Ist vorhanden.")
 
 # =============================================================================
 # 4 · KI-Kommentare (Human-in-the-Loop)
 # =============================================================================
 
 def _seite_kommentare() -> None:
-    zeige(ui.leitfrage("Welche Erklärungen gehen – geprüft und namentlich freigegeben – in den Bericht?"))
+    zeige(ui.leitfrage("Welche Erklärungen gehen – geprüft und namentlich freigegeben – in den Bericht?", "AI Commentary"))
 
     def objektname(objekt_id: str) -> str:
         a = abschluss.faktenblatt.abweichung(objekt_id)
@@ -686,8 +646,8 @@ def _seite_kommentare() -> None:
 
     with st.container(border=True):
         freigegebene = berichtsfaehige_kommentare(speicher.values())
-        zeige(f'<div class="va"><div class="va-ueberschrift"><span>Monatsbericht und Export</span>'
-              f'<span>{len(freigegebene)} freigegebene Kommentare gehen in den Bericht ein – Entwürfe nie</span></div></div>')
+        zeige(f'<div class="va"><div class="va-ueberschrift"><span>Monatsbericht und Export</span><span>Monthly Report &amp; Export</span></div>'
+              f'<p class="va-unter">{len(freigegebene)} freigegebene Kommentare gehen in den Bericht ein – Entwürfe nie.</p></div>')
         if st.button("Monatsbericht, Excel und Power-BI-Paket erstellen"):
             from src.exporter import (  # noqa: PLC0415
                 exportiere_excel,
@@ -717,12 +677,12 @@ def _seite_kommentare() -> None:
 # =============================================================================
 
 def _seite_frage() -> None:
-    zeige(ui.leitfrage("Fragen in natürlicher Sprache – Antworten nur aus fünf geprüften Analysefunktionen."))
+    zeige(ui.leitfrage("Was möchten Sie zum Monatsabschluss wissen? Jede Zahl der Antwort ist belegt.", "Ask the Controller"))
     verlauf = st.session_state.setdefault("verlauf", {}).setdefault(kontext, [])
-    knoepfe = st.columns(len(BEISPIELFRAGEN))
+    knoepfe = st.columns(2)
     vorschlag = None
-    for knopf, frage in zip(knoepfe, BEISPIELFRAGEN, strict=True):
-        if knopf.button(frage, key=f"bsp_{frage}", width="stretch"):
+    for nr, frage in enumerate(BEISPIELFRAGEN):
+        if knoepfe[nr % 2].button(frage, key=f"bsp_{frage}", width="stretch"):
             vorschlag = frage
     eingabe = st.chat_input("Frage an den Controller, z. B. „Warum ist der Deckungsbeitrag gesunken?“")
     frage = eingabe or vorschlag
@@ -735,9 +695,7 @@ def _seite_frage() -> None:
                           f"{sum(f.belegt for f in antwort.pruefung.funde)} Zahlen belegt")
 
     if not verlauf:
-        zeige(ui.karte('<p class="va-absatz va-leise">Wählen Sie eine Beispielfrage oder stellen Sie eine eigene. Der Agent '
-                       'ruft nur Whitelist-Funktionen auf (kein SQL); jede Zahl der Antwort wird gegen Faktenblatt und '
-                       'Tool-Ergebnisse geprüft und mit Quelle angezeigt.</p>'))
+        st.caption("Wählen Sie eine Beispielfrage oder stellen Sie unten eine eigene.")
     for antwort in reversed(verlauf):
         with st.chat_message("user", avatar=":material/person:"):
             st.write(antwort.frage)
@@ -754,7 +712,7 @@ def _seite_frage() -> None:
                   + ui.pill("Faktenprüfung " + ("bestanden" if bestanden else "nicht bestanden"),
                             "gut" if bestanden else "schlecht")
                   + ui.pill(f"{belegt}/{len(antwort.pruefung.funde)} Zahlen belegt", "leise")
-                  + ui.pill(antwort.modell, "leise") + "</div>" + ui.kette(glieder) + "</div>")
+                  + "</div>" + ui.kette(glieder) + "</div>")
             with st.expander(f"Verwendete Tools ({len(antwort.tool_aufrufe)})"):
                 st.dataframe(pd.DataFrame([
                     {"Tool": t.name, "Argumente": ", ".join(f"{k}={v}" for k, v in t.argumente.items()) or "–",
@@ -774,67 +732,38 @@ def _seite_frage() -> None:
 # =============================================================================
 
 def _seite_audit() -> None:
-    zeige(ui.leitfrage("Wer entscheidet was – und warum? Jede Zahl hat eine Quelle, jede Freigabe einen Namen."))
+    zeige(ui.leitfrage("Wer entscheidet was – und warum? Jede Zahl hat eine Quelle, jede Freigabe einen Namen.", "Agent & Audit Trail"))
     a_links, a_rechts = st.columns([1.3, 1], gap="medium")
-    entwuerfe_n = sum(k.status is Freigabestatus.ENTWURF for k in speicher.values())
     frei_n = len(berichtsfaehige_kommentare(speicher.values()))
     verworfen_n = sum(1 for k in speicher.values() if k.verworfener_ki_text)
-    injektionen = sum(1 for a in analyse.knoten.values() for t in a.datentexte if erkenne_injektionsmuster(t))
     with a_links:
         zeige(ui.karte(ui.agentenkarten([
-            ui.Agentenkarte("datenbank", "DATENPRÜFUNG", protokoll.ampel.value, "9 Prüfpunkte: Vollständigkeit, "
-                            "Summen, Dubletten, Vorzeichen, Perioden, Buchungstexte",
-                            "Keine Analyse vor bestandener Prüfung.",
-                            f"{anzahl_ok}/{len(protokoll.punkte)} ohne Befund · {len(protokoll.bereinigungen)} bereinigt",
+            ui.Agentenkarte("datenbank", "Datenprüfung", protokoll.ampel.value,
+                            "Neun Prüfpunkte vor jeder Analyse.", "Keine Analyse vor bestandener Prüfung.", "",
                             AMPEL_TON[protokoll.ampel]),
-            ui.Agentenkarte("diagramm", "ANALYSE-ENGINE", "fertig", "Preis/Menge/Mix/Sortiment, flexible "
-                            "Plankostenrechnung, EBIT-Brücke",
-                            "Rechnet centgenau – nie das LLM.",
-                            f"{len(analyse.knoten)} Objekte · Summe Effekte = Δ", "gut"),
-            ui.Agentenkarte("kurve", "FORECAST-ENGINE", "fertig" if abschluss.forecasts else "inaktiv",
-                            "Saisonal-naiv vs. Holt-Winters, Intervalle, Szenarien",
-                            "Methode nur per Backtest gewählt.",
-                            " · ".join(f"{n}: {f.methode.value}" for n, f in abschluss.forecasts.items()) or "–",
-                            "gut" if abschluss.forecasts else "leise"),
-            ui.Agentenkarte("funke", "KI-AGENT", "offline" if offline else "live", "Formuliert Kommentare und "
-                            "Antworten; ruft nur 5 Whitelist-Tools auf",
-                            "Formuliert – rechnet nicht.", f"{llm.anbieter}:{llm.modell}", "akzent", aktiv=True),
-            ui.Agentenkarte("schild", "FAKTENPRÜFUNG", "aktiv", "Zahl, Einheit, Vorzeichen und Rundung gegen "
-                            "Faktenblatt; Konsistenz der Aussage",
-                            "Keine Zahl ohne Quelle.", f"{verworfen_n} KI-Texte verworfen · {injektionen} Texte geschützt",
+            ui.Agentenkarte("diagramm", "Analyse und Forecast", "fertig",
+                            "Python berechnet Abweichungen, Brücken und Prognose.", "Rechnet centgenau – nie die KI.", "",
                             "gut"),
-            ui.Agentenkarte("person", "CONTROLLER", "Freigabe", "Prüft, bearbeitet und gibt namentlich frei",
-                            "Kein Bericht ohne Namen.", f"{frei_n} freigegeben · {entwuerfe_n} Entwürfe", "neutral"),
-        ]), "Agenten-Pipeline", "Prüfen → Rechnen → Formulieren → Prüfen → Freigeben"))
+            ui.Agentenkarte("funke", "KI-Agent", "Demo" if offline else "live",
+                            "Formuliert Kommentare und Antworten; jede Zahl wird automatisch geprüft.",
+                            "Formuliert – rechnet nicht.", "", "akzent", aktiv=True),
+            ui.Agentenkarte("person", "Controller", "Freigabe", "Prüft, bearbeitet und gibt namentlich frei.",
+                            "Kein Bericht ohne Namen.", "", "neutral"),
+        ]), "So arbeitet VarianceAI", "How It Works"))
 
         knoten = list(analyse.knoten.values())
         wesentlich_n = sum(a.wesentlich for a in knoten)
         zeige(ui.karte(ui.trichter([
-            ("datenbank", "Analyseobjekte", "alle Ebenen, Plan-Ist, Ist-Vorjahr, Ist-Forecast", str(len(knoten)),
-             "Objekte"),
+            ("datenbank", "Berechnete Abweichungen", "alle Ebenen und Vergleiche", str(len(knoten)), ""),
             ("filter", "Wesentlich", f"|Δ| ≥ {format_betrag(Decimal(schwelle_eur), 'T€')} und "
              f"|Δ %| ≥ {format_prozent(Decimal(str(schwelle_pct)), vorzeichen=False)}", str(wesentlich_n),
              f"{len(knoten) - wesentlich_n} unter Schwelle"),
-            ("lupe", "Kommentierbar", "Gesamt, Region, Produktgruppe, Kostenstelle", str(len(wesentliche)),
-             "Details im Drill-down"),
+            ("lupe", "Kommentierbar", "Gesamt, Region, Produktgruppe, Kostenstelle", str(len(wesentliche)), ""),
             ("funke", "Entwürfe", "KI-Text oder regelbasierter Ersatz, geprüft", str(len(speicher)),
              f"{verworfen_n} KI-Texte verworfen"),
             ("check", "Im Bericht", "nur namentlich freigegeben", str(frei_n), "berichtsfähig"),
-        ]), "Vom Analyseobjekt zum Bericht", f"{len(knoten)} → {frei_n}"))
+        ]), "Von der Abweichung zum Bericht", "From Variance to Report"))
 
-        unter_betrag = sum(1 for a in knoten if not a.wesentlich and abs(a.delta_abs or 0) < schwelle_eur)
-        unter_pct = sum(1 for a in knoten if not a.wesentlich and abs(a.delta_abs or 0) >= schwelle_eur)
-        detail = sum(1 for a in knoten if a.wesentlich and a.ebene not in KOMMENTIERBARE_EBENEN)
-        sonst = sum(1 for a in abschluss.faktenblatt.wesentliche()
-                    if a.ebene in KOMMENTIERBARE_EBENEN) - len(wesentliche)
-        gruende = [("Unter Betragsschwelle", f"|Δ| < {format_betrag(Decimal(schwelle_eur), 'T€')}", unter_betrag),
-                   ("Unter Prozentschwelle", "Betrag erreicht, |Δ %| nicht", unter_pct),
-                   ("Detailebene", "Produkt, Kunde, Kostenart – im Drill-down erklärt", detail)]
-        if sonst > 0:
-            gruende.append(("Sonstige", "", sonst))
-        groesste = max((g[2] for g in gruende), default=1) or 1
-        zeige(ui.karte(ui.rangliste([(n, z, str(w), w / groesste, "leise") for n, z, w in gruende]),
-                       "Warum Objekte nicht kommentiert werden", "regelbasiert, nachvollziehbar"))
 
     with a_rechts:
         with st.container(border=True):
@@ -863,8 +792,7 @@ def _seite_audit() -> None:
                       + "</div>")
 
         eintraege = audit(kontext)
-        zeige(ui.karte(ui.protokoll(list(reversed(eintraege))), "Audit-Protokoll",
-                       f"append-only · {len(eintraege)} Einträge · neueste oben"))
+        zeige(ui.karte(ui.protokoll(list(reversed(eintraege))), "Audit-Protokoll", "Audit Log"))
         st.download_button(
             "⬇ Audit-Protokoll als JSON", width="stretch", key="audit_json", file_name=f"audit_{kontext}.json",
             data=json.dumps([e.__dict__ for e in eintraege], ensure_ascii=False, indent=2).encode("utf-8"),

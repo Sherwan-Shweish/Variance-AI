@@ -6,7 +6,7 @@ enableStaticServing = true      # Schriften aus static/fonts (offline, ohne Goog
 
 [client]
 toolbarMode = "minimal"
-showErrorDetails = "full"       # lokal: Fehlerursache sichtbar; im Firmenbetrieb "type" oder "none"
+showErrorDetails = "type"       # öffentliche Demo: nur Fehlertyp; lokal bei Bedarf "full"
 
 [browser]
 gatherUsageStats = false

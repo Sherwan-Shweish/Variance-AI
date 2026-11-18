@@ -30,11 +30,22 @@ from src.ui_design import FARBEN, rgba
 
 MONATE = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 _KURZ = {
-    "Mengeneffekt": "Menge", "Preiseffekt": "Preis", "Mixeffekt": "Mix", "Sortimentseffekt": "Sortiment",
-    "Preisabweichung": "Preis-|abw.", "Verbrauchsabweichung": "Verbrauchs-|abw.",
-    "Beschäftigungsabweichung": "Beschäft.-|abw.", "Einmaleffekt": "Einmal-|effekt",
-    "Plankostenanpassung": "Plankosten-|anpassung", "Sonstige Abweichung": "Sonstige",
+    "Mengeneffekt": "Menge", "Preiseffekt": "Preis", "Mixeffekt": "Mix", "Sortimentseffekt": "Sorti-|ment",
+    "Preisabweichung": "Preis-|abw.", "Verbrauchsabweichung": "Ver-|brauch",
+    "Beschäftigungsabweichung": "Beschäf-|tigung", "Einmaleffekt": "Einmal-|effekt",
+    "Plankostenanpassung": "Plan-|kosten", "Sonstige Abweichung": "Sonstige",
 }
+_KURZ_KPI = {"Mengeneffekt": "Menge", "Preiseffekt": "Preis", "Mixeffekt": "Mix", "Sortimentseffekt": "Sortiment",
+             "Preisabweichung": "Preisabw.", "Verbrauchsabweichung": "Verbrauchsabw.",
+             "Beschäftigungsabweichung": "Beschäftigung", "Plankostenanpassung": "Plankosten",
+             "Sonstige Abweichung": "Sonstige"}
+
+
+def kurz_effekt(effektart: str) -> str:
+    """Kurzform einer Effektart für schmale Kennzahlenkarten (z. B. „Sortiment“ statt „Sortimentseffekt“)."""
+    return _KURZ_KPI.get(effektart, effektart)
+
+
 BASISKUERZEL = {Vergleichsart.PLAN_IST: "PL", Vergleichsart.IST_VJ: "PY", Vergleichsart.IST_FC: "FC"}
 SCHWELLE_ABWEICHUNGSBRUECKE = 0.12
 

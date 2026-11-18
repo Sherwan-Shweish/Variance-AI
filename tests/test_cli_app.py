@@ -124,6 +124,16 @@ def test_app_tabs_und_kpis(app):
     assert "<svg" not in html                                  # Grafiken nur als bereinigte Data-URI-Bilder
 
 
+def test_app_zweisprachige_beschriftung(app):
+    """Deutsch ist Hauptsprache; englische Fachbegriffe stehen als Zweitbeschriftung dabei."""
+    html = _html(app)
+    for seite in ("Monthly Overview", "Variance Analysis", "Forecast", "AI Commentary", "Ask the Controller",
+                  "Agent &amp; Audit Trail"):
+        assert f">{seite}</span>" in html
+    assert '<div class="va-kpi-label">Umsatz</div><span class="va-en">Revenue</span>' in html
+    assert "Variance Analysis &amp; Forecasting" in html
+
+
 def test_app_drilldown(app):
     app.selectbox(key="abw_kennzahl").set_value("Kosten Kostenstellen").run()
     app.selectbox(key="drill_KST_0").set_value("KST-4300").run()
